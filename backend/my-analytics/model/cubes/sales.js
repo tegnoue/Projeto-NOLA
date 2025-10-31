@@ -109,7 +109,7 @@ cube(`sales`, {
     
     avg_ticket: {
       type: `number`,
-      sql: `${faturamento} / ${count}`, 
+      sql: `${invoicing} / ${count}`, 
       format: `currency`,
       title: `Ticket Médio`
     }
