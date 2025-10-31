@@ -98,6 +98,20 @@ cube(`sales`, {
     people_quantity: {
       sql: `people_quantity`,
       type: `sum`
+    },
+
+    invoicing: {
+      type: `sum`,
+      sql: `total_amount`, 
+      format: `currency`, 
+      title: `Faturamento Total`
+    },
+    
+    avg_ticket: {
+      type: `number`,
+      sql: `${faturamento} / ${count}`, 
+      format: `currency`,
+      title: `Ticket Médio`
     }
   },
   
