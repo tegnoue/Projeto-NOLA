@@ -1,3 +1,6 @@
+## ARQUITETURA DO PROJETO
+Esse projeto terá a arquitetura em camadas e será desenvolvido visando o desacoplamento entre estas e garantindo que as requisições sigam processos bem definidos para que não haja "perda de desempenho" em camadas não adequadas. A decisão por essa arquitetura em específico foi tomada pensando nas boas práticas de cosntrução/manutenção do software onde, nesse caso, a ideia é isolar as responsabilidades de cada camada e garantir que as camadas se comuniquem por abstrações.  
+
 Dentro do escopo do projeto de Analytics para restaurantes, o objetivo é construir uma aplicação analítica sobre um banco de dados já existente. O design do projeto é guiado por 3 pontos essenciais:
 
 1.  A interface e experiência do usuário, ou UX/UI, precisa ser simples, intuitiva, organizada e efetiva, além de, preferencialmente, responsiva (mobile-friendly).
@@ -21,3 +24,28 @@ Nesta camada a estratégia é utilizar materializações ou pré-agregações, s
 ### CAMADA DE ARMAZENAMENTO (Banco de Dados)
 
 A tecnologia já definida é o PostgreSQL, que atua como nosso banco de dados transacional (OLTP). A arquitetura foi desenhada para não sobrecarregá-lo com queries analíticas pesadas, delegando essa responsabilidade de otimização (via pré-agregações) para a Camada Analítica (Cube.js).
+
+[ Utilizador (Maria) ]
+               |
+               v (Interage com a UI no Navegador)
+      +--------------------------+
+      |  Componente 1: Frontend  |
+      |  (Next.js + Recharts)    |
+      |  (Gráficos, Filtros, UI) |
+      +--------------------------+
+               |
+               v (Pede métricas, ex: "Faturamento por Loja")
+               | (API via HTTP/GraphQL)
+      +--------------------------+
+      |  Componente 2: Backend   |
+      |  Analítico (Cube.js)     |
+      |  (Gera SQL, Cache,       |
+      |   Pré-agregações)        |
+      +--------------------------+
+               |
+               v (Executa query SQL otimizada)
+      +--------------------------+
+      |  Componente 3: Banco de  |
+      |  Dados (PostgreSQL)      |
+      |  (+500k Vendas Brutas)   |
+      +--------------------------+
