@@ -25,7 +25,8 @@ Nesta camada a estratégia é utilizar materializações ou pré-agregações, s
 
 A tecnologia já definida é o PostgreSQL, que atua como nosso banco de dados transacional (OLTP). A arquitetura foi desenhada para não sobrecarregá-lo com queries analíticas pesadas, delegando essa responsabilidade de otimização (via pré-agregações) para a Camada Analítica (Cube.js).
 
-[ Utilizador (Maria) ]
+```
+      [ Utilizador (Maria) ]
                |
                v (Interage com a UI no Navegador)
       +--------------------------+
@@ -49,3 +50,4 @@ A tecnologia já definida é o PostgreSQL, que atua como nosso banco de dados tr
       |  Dados (PostgreSQL)      |
       |  (+500k Vendas Brutas)   |
       +--------------------------+
+```
