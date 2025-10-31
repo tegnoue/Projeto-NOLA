@@ -1,0 +1,14 @@
+{
+  "name": "my-analytics",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "cubejs-server"
+  },
+  "template": "docker",
+  "templateVersion": "1.5.0",
+  "devDependencies": {
+    "@cubejs-backend/postgres-driver": "^1.5.0",
+    "@cubejs-backend/server": "^1.5.0"
+  }
+}
