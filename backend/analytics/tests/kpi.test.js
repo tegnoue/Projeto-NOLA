@@ -53,4 +53,42 @@ describe('Testes de Métricas de KPI (US01)', () => {
 
     expect(parseFloat(data['sales.avg_ticket'])).toBeCloseTo(ticketMedioCalculado);
   });
+
+test('Deve retornar o Top 10 produtos por faturamento (US03)', async () => {
+    
+    const query = {
+      measures: [
+        'sales.invoicing'
+      ],
+      dimensions: [
+        'products.name'
+      ],
+      order: {
+        'sales.invoicing': 'desc' 
+      },
+      limit: 10, 
+      filters: [
+        {
+          member: 'sales.status', 
+          operator: 'equals',
+          values: ['COMPLETED']
+        }
+      ]
+    };
+
+    const resultSet = await cubeApi.load(query);
+    const data = resultSet.tablePivot();
+
+    expect(data).toBeDefined();
+    expect(data.length).toBe(10);
+
+    expect(data[0]['products.name']).toBeDefined();
+    expect(data[0]['sales.invoicing']).toBeDefined();
+
+    const faturamentoProduto1 = parseFloat(data[0]['sales.invoicing']);
+    const faturamentoProduto2 = parseFloat(data[1]['sales.invoicing']);
+
+    expect(faturamentoProduto1).toBeGreaterThanOrEqual(faturamentoProduto2);
+  });
+
 });
