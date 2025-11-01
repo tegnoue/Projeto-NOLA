@@ -1,4 +1,4 @@
-const cubejs = require('@cubejs-client/core');
+const cubejs = require('@cubejs-client/core'); 
 const fetch = require('node-fetch');
 
 const cubeApi = cubejs(
@@ -13,9 +13,7 @@ const cubeApi = cubejs(
   }
 );
 
-//teste para os principais KPI 
-
-describe('Testes de Métricas de KPI (US01)', () => {
+describe('Testes de Métricas de Negócio', () => {
 
   test('Deve calcular o faturamento, contagem e ticket médio (apenas para vendas completas)', async () => {
     
@@ -27,7 +25,7 @@ describe('Testes de Métricas de KPI (US01)', () => {
       ],
       filters: [
         {
-          dimension: 'sales.status', 
+          member: 'sales.status', 
           operator: 'equals',
           values: ['COMPLETED']
         }
@@ -38,14 +36,8 @@ describe('Testes de Métricas de KPI (US01)', () => {
     const data = resultSet.tablePivot()[0];
 
     expect(data).toBeDefined(); 
-    expect(data['sales.count']).toBeDefined();
-    expect(data['sales.invoicing']).toBeDefined();
-    expect(data['sales.avg_ticket']).toBeDefined();
-
-
     expect(Number(data['sales.count'])).toBeGreaterThan(0);
     expect(Number(data['sales.invoicing'])).toBeGreaterThan(0);
-    expect(Number(data['sales.avg_ticket'])).toBeGreaterThan(0);
 
     const faturamentoCalculado = parseFloat(data['sales.invoicing']);
     const contagemCalculada = parseFloat(data['sales.count']);
@@ -54,7 +46,7 @@ describe('Testes de Métricas de KPI (US01)', () => {
     expect(parseFloat(data['sales.avg_ticket'])).toBeCloseTo(ticketMedioCalculado);
   });
 
-test('Deve retornar o Top 10 produtos por faturamento (US03)', async () => {
+  test('Deve retornar o Top 10 produtos por faturamento (US03)', async () => {
     
     const query = {
       measures: [
@@ -81,14 +73,9 @@ test('Deve retornar o Top 10 produtos por faturamento (US03)', async () => {
 
     expect(data).toBeDefined();
     expect(data.length).toBe(10);
-
     expect(data[0]['products.name']).toBeDefined();
-    expect(data[0]['sales.invoicing']).toBeDefined();
-
     const faturamentoProduto1 = parseFloat(data[0]['sales.invoicing']);
     const faturamentoProduto2 = parseFloat(data[1]['sales.invoicing']);
-
     expect(faturamentoProduto1).toBeGreaterThanOrEqual(faturamentoProduto2);
   });
-
 });
