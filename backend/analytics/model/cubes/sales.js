@@ -110,6 +110,11 @@ cube(`sales`, {
     created_at: {
       sql: `created_at`,
       type: `time`
+    },
+
+    store_id: {
+      sql: `store_id`,
+      type: `number`
     }
   },
   
