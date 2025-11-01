@@ -27,9 +27,14 @@ cube(`sales`, {
     product_sales: {
       sql: `${CUBE}.id = ${product_sales.sale_id}`,
       relationship: `hasMany`
+    },
+    
+    delivery_sales: {
+      sql: `${CUBE}.id = ${delivery_sales}.sale_id`,
+      relationship: `hasOne`
     }
   },
-  
+
   dimensions: {
     id: {
       sql: `id`,
@@ -138,7 +143,20 @@ cube(`sales`, {
     people_quantity: {
       sql: `people_quantity`,
       type: `sum`
-    }
+    },
+
+    avg_prep_time: {
+      type: `avg`,
+      sql: `${CUBE}.production_seconds / 60`,
+      format: `number`,
+      title: `Tempo Médio de Preparo (min)`
+    },
+    avg_delivery_time: {
+      type: `avg`,
+      sql: `${CUBE}.delivery_seconds / 60`,
+      format: `number`,
+      title: `Tempo Médio de Entrega (min)`
+    },
   },
   
   pre_aggregations: {
