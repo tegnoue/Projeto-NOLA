@@ -3,6 +3,15 @@
 import cubeApi from '../lib/cube'; 
 import { CubeProvider, useCubeQuery } from '@cubejs-client/react';
 import React, { useState } from 'react'; 
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer 
+} from 'recharts';
 
 interface DataDisplayProps {
   selectedStore: string | null;
@@ -18,7 +27,6 @@ function DataDisplay({ selectedStore, dateRange }: DataDisplayProps) {
       values: ['COMPLETED']
     }
   ];
-
   if (selectedStore) {
     filters.push({
       member: 'stores.name',
@@ -83,7 +91,6 @@ function TopProductsPerInvoicing({ selectedStore, dateRange }: TopProductsProps)
       values: ['COMPLETED']
     }
   ];
-
   if (selectedStore) {
     filters.push({
       member: 'stores.name',
@@ -131,25 +138,77 @@ function TopProductsPerInvoicing({ selectedStore, dateRange }: TopProductsProps)
   );
 }
 
+interface ChartComponentProps {
+  selectedStore: string | null;
+  dateRange: [string, string];
+}
+
+function SalesByHourChart({ selectedStore, dateRange }: ChartComponentProps) {
+  const filters = [
+    {
+      member: 'sales.sale_status_desc',
+      operator: 'equals' as const,
+      values: ['COMPLETED']
+    }
+  ];
+  if (selectedStore) {
+    filters.push({
+      member: 'stores.name',
+      operator: 'equals' as const,
+      values: [selectedStore]
+    });
+  }
+
+  const { resultSet, isLoading, error } = useCubeQuery({
+    measures: ['sales.invoicing'],
+    dimensions: ['sales.hourOfDay'],
+    timeDimensions: [
+      {
+        dimension: 'sales.created_at',
+        dateRange: dateRange,
+      },
+    ],
+    filters: filters,
+    order: {
+      'sales.hourOfDay': 'asc'
+    }
+  });
+
+  if (error) return <div>Erro (SalesByHour): {error.toString()}</div>;
+  if (isLoading) return <div>A carregar Vendas por Hora...</div>;
+  
+  const data = resultSet?.rawData() || [];
+
+  return (
+    <div style={{ fontFamily: 'Arial', margin: '20px', height: '300px' }}>
+      <h2>Faturamento por Hora (US06)</h2>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="sales.hourOfDay" />
+          <YAxis />
+          <Tooltip />
+          <Bar dataKey="sales.invoicing" fill="#8884d8" />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+
 interface StoreFilterProps {
   onStoreChange: (store: string | null) => void;
 }
 
 function StoreFilter({ onStoreChange }: StoreFilterProps) {
-  const { resultSet, isLoading, error } = useCubeQuery({
-    dimensions: [
-      'stores.name'
-    ]
-  });
-
+  const { resultSet, isLoading, error } = useCubeQuery({ dimensions: ['stores.name'] });
   if (isLoading) return <div>A carregar lojas...</div>;
   if (error) return <div>Erro (StoreFilter): {error.toString()}</div>;
-
   const stores = resultSet?.tablePivot() || [];
 
   return (
-    <div style={{ fontFamily: 'Arial', margin: '20px', padding: '10px', background: '#f4f4f4' }}>
-      <strong>Filtro Global (US04): </strong>
+    <div style={{ marginRight: '20px' }}>
+      <strong>Filtro de Loja (US04): </strong>
       <select onChange={(e) => onStoreChange(e.target.value || null)}>
         <option value="">-- Todas as Lojas --</option>
         {stores.map((store, index) => (
@@ -169,25 +228,18 @@ interface DateFilterProps {
 
 function DateFilter({ dateRange, onDateChange }: DateFilterProps) {
   return (
-    <div style={{ padding: '20px', fontFamily: 'Arial', background: '#f4f4f4' }}>
-      <strong>Filtro Global (US02): </strong>
+    <div>
+      <strong>Filtro de Data (US02): </strong>
       <label>De: </label>
-      <input 
-        type="date" 
-        value={dateRange[0]}
-        onChange={(e) => onDateChange([e.target.value, dateRange[1]])}
-      />
+      <input type="date" value={dateRange[0]} onChange={(e) => onDateChange([e.target.value, dateRange[1]])} />
       <label style={{ marginLeft: '10px' }}>Até: </label>
-      <input 
-        type="date" 
-        value={dateRange[1]}
-        onChange={(e) => onDateChange([dateRange[0], e.target.value])}
-      />
+      <input type="date" value={dateRange[1]} onChange={(e) => onDateChange([dateRange[0], e.target.value])} />
     </div>
   );
 }
 
 export default function Home() {
+  
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<[string, string]>([
     '2025-01-01', 
@@ -196,12 +248,26 @@ export default function Home() {
   
   return (
     <CubeProvider cubeApi={cubeApi}>
+      <h1>Dashboard Financeiro (Home)</h1>
       
-      <StoreFilter onStoreChange={setSelectedStore} />
-      <DateFilter dateRange={dateRange} onDateChange={setDateRange} />
+      <div style={{ fontFamily: 'Arial', margin: '20px', padding: '10px', background: '#f4f4f4', display: 'flex' }}>
+        <StoreFilter onStoreChange={setSelectedStore} />
+        <DateFilter dateRange={dateRange} onDateChange={setDateRange} />
+      </div>
       
       <DataDisplay selectedStore={selectedStore} dateRange={dateRange} />
+      
+      <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: '400px' }}>
+          <SalesByHourChart selectedStore={selectedStore} dateRange={dateRange} />
+        </div>
+        <div style={{ flex: 1, minWidth: '400px' }}>
+          <SalesByDayOfWeekChart selectedStore={selectedStore} dateRange={dateRange} />
+        </div>
+      </div>
+      
       <hr/>
+      
       <TopProductsPerInvoicing selectedStore={selectedStore} dateRange={dateRange} />
     </CubeProvider>
   );
