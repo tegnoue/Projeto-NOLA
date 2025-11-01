@@ -1,8 +1,8 @@
 'use client'; 
     
-import cubeApi from '../lib/cube'; // O seu ficheiro de configuração da API
+import cubeApi from '../lib/cube'; 
 import { CubeProvider, useCubeQuery } from '@cubejs-client/react';
-import React, { useState } from 'react'; // Importando o 'useState'
+import React, { useState } from 'react'; 
 
 
 function DataDisplay() {
@@ -21,7 +21,7 @@ function DataDisplay() {
     
     filters: [
       {
-        member: 'sales.status', 
+        member: 'sales.sale_status_desc', 
         operator: 'equals',
         values: ['COMPLETED'] 
       }
@@ -29,7 +29,7 @@ function DataDisplay() {
     
     timeDimensions: [
       {
-        dimension: 'sales.createdAt', 
+        dimension: 'sales.created_at', 
         dateRange: dateRange, 
       },
     ],
@@ -74,10 +74,51 @@ function DataDisplay() {
   );
 }
 
+function TopProductsPerInvoicing() {
+  const { resultSet, isLoading, error } = useCubeQuery({
+    measures: [
+      'sales.invoicing', 
+    ],
+    dimensions: [
+      'products.name' 
+    ],
+    order: {
+      'sales.invoicing': 'desc' 
+    },
+    limit: 10,
+    filters: [
+      {
+        member: 'sales.sale_status_desc',
+        operator: 'equals',
+        values: ['COMPLETED']
+      }
+    ]
+  });
+
+  if (error) return <div>Erro (TopProducts): {error.toString()}</div>;
+  if (isLoading) return <div>A carregar Top Produtos...</div>;
+  
+  const products = resultSet?.tablePivot() || [];
+
+  return (
+    <div style={{ fontFamily: 'Arial', margin: '20px' }}>
+      <h2>Top 10 Produtos por faturamento</h2>
+      <ol>
+        {products.map((product, index) => (
+          <li key={index}>
+            <strong>{product['products.name']}</strong>: {product['sales.invoicing']}
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 export default function Home() {
   return (
     <CubeProvider cubeApi={cubeApi}>
       <DataDisplay />
+      <TopProductsPerInvoicing />
     </CubeProvider>
   );
 }

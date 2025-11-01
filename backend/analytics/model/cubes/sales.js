@@ -4,20 +4,33 @@ cube(`sales`, {
   data_source: `default`,
   
   joins: {
+    channels: {
+      sql: `${CUBE}.channel_id = ${channels.id}`,
+      relationship: `many_to_one`
+    },
     
+    customers: {
+      sql: `${CUBE}.customer_id = ${customers.id}`,
+      relationship: `many_to_one`
+    },
+    
+    stores: {
+      sql: `${CUBE}.store_id = ${stores.id}`,
+      relationship: `many_to_one`
+    },
+    
+    sub_brands: {
+      sql: `${CUBE}.sub_brand_id = ${sub_brands.id}`,
+      relationship: `many_to_one`
+    },
+
+    product_sales: {
+      sql: `${CUBE}.id = ${product_sales.sale_id}`,
+      relationship: `hasMany`
+    }
   },
   
   dimensions: {
-    status: {
-      sql: `sale_status_desc`,
-      type: `string`
-    },
-    
-    createdAt: {
-      sql: `created_at`,
-      type: `time`
-    },
-
     id: {
       sql: `id`,
       type: `number`,
@@ -92,6 +105,11 @@ cube(`sales`, {
     value_paid: {
       sql: `value_paid`,
       type: `string`
+    },
+    
+    created_at: {
+      sql: `created_at`,
+      type: `time`
     }
   },
   
@@ -99,24 +117,22 @@ cube(`sales`, {
     count: {
       type: `count`
     },
+
+    avg_ticket: {
+      type: `avg`,
+      sql: `total_amount`,
+      format: `currency`
+    },
+
+    invoicing: {
+      type: `sum`,
+      sql: 'total_amount',
+      format: `currency`
+    },
     
     people_quantity: {
       sql: `people_quantity`,
       type: `sum`
-    },
-    
-    invoicing: {
-      type: `sum`,
-      sql: `total_amount`, 
-      format: `currency`,
-      title: `Faturamento`
-    },
-    
-    avg_ticket: {
-      type: `number`,
-      sql: `${invoicing} / ${count}`, 
-      format: `currency`,
-      title: `Ticket Médio`
     }
   },
   
