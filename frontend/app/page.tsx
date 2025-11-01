@@ -195,6 +195,57 @@ function SalesByHourChart({ selectedStore, dateRange }: ChartComponentProps) {
   );
 }
 
+function SalesByDayOfWeekChart({ selectedStore, dateRange }: ChartComponentProps) {
+  const filters = [
+    {
+      member: 'sales.sale_status_desc',
+      operator: 'equals' as const,
+      values: ['COMPLETED']
+    }
+  ];
+  if (selectedStore) {
+    filters.push({
+      member: 'stores.name',
+      operator: 'equals' as const,
+      values: [selectedStore]
+    });
+  }
+
+  const { resultSet, isLoading, error } = useCubeQuery({
+    measures: ['sales.invoicing'],
+    dimensions: ['sales.dayOfWeek'],
+    timeDimensions: [
+      {
+        dimension: 'sales.created_at',
+        dateRange: dateRange,
+      },
+    ],
+    filters: filters,
+    order: {
+      'sales.dayOfWeek': 'asc'
+    }
+  });
+
+  if (error) return <div>Erro (SalesByDayOfWeek): {error.toString()}</div>;
+  if (isLoading) return <div>A carregar Vendas por Dia da Semana...</div>;
+  
+  const data = resultSet?.rawData() || [];
+
+  return (
+    <div style={{ fontFamily: 'Arial', margin: '20px', height: '300px' }}>
+      <h2>Faturamento por Dia da Semana (US06)</h2>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="sales.dayOfWeek" />
+          <YAxis />
+          <Tooltip />
+          <Bar dataKey="sales.invoicing" fill="#82ca9d" />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
 
 interface StoreFilterProps {
   onStoreChange: (store: string | null) => void;
