@@ -28,7 +28,7 @@ cube(`sales`, {
       sql: `${CUBE}.id = ${product_sales.sale_id}`,
       relationship: `hasMany`
     },
-    
+
     delivery_sales: {
       sql: `${CUBE}.id = ${delivery_sales}.sale_id`,
       relationship: `hasOne`
@@ -115,6 +115,16 @@ cube(`sales`, {
     created_at: {
       sql: `created_at`,
       type: `time`
+    },
+
+    hourOfDay: {
+      sql: `EXTRACT(HOUR FROM ${CUBE}.created_at)`,
+      type: `number`
+    },
+
+    dayOfWeek: {
+      sql: `EXTRACT(DOW FROM ${CUBE}.created_at)`,
+      type: `number`
     },
 
     store_id: {
