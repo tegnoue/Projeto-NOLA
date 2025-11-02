@@ -11,10 +11,6 @@ cube(`delivery_sales`, {
     delivery_addresses: {
       sql: `${CUBE}.id = ${delivery_addresses}.delivery_sale_id`,
       relationship: `hasOne`
-  },
-    neighborhood: {
-      sql: `neighborhood`,
-      type: `string`
   }
   },
   

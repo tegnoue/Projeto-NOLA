@@ -167,6 +167,23 @@ cube(`sales`, {
       format: `number`,
       title: `Tempo Médio de Entrega (min)`
     },
+
+    count_cancelled: {
+      type: `count`,
+      title: `Vendas Canceladas`,
+      filters: [
+        {
+          sql: `${CUBE}.sale_status_desc = 'CANCELLED'`
+        }
+      ]
+    },
+    
+    cancellation_rate: {
+      type: `number`,
+      sql: `(${count_cancelled}::float / ${count}::float)`,
+      format: `percent`,
+      title: `Taxa de Cancelamento`
+    }
   },
   
   pre_aggregations: {
