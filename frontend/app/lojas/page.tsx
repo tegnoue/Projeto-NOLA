@@ -3,6 +3,7 @@
 import cubeApi from '../../lib/cube'; 
 import { CubeProvider, useCubeQuery } from '@cubejs-client/react';
 import React, { useMemo, useState } from 'react'; 
+import Link from 'next/link';
 import { useFilters } from '@/lib/filters-context';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
@@ -82,29 +83,95 @@ function OwnVsFranchiseChart({ filters, timeDimensions }: { filters: any[]; time
   );
 }
 
-function StoreRankingTable({ filters, dateRange, timeDimensions }: { filters: any[]; dateRange: [string, string]; timeDimensions: any[] }) {
-
-  const previousDateRange = getPreviousPeriod(dateRange);
-
-  const { resultSet: currentData, isLoading: isLoadingCurrent, error: errorCurrent } = useCubeQuery({
-    measures: [
-      'sales.invoicing',
-      'sales.avg_ticket',
-      'sales.cancellation_rate',
-      'sales.avg_delivery_time'
-    ],
+function Top5StoresByInvoicing({ filters, timeDimensions }: { filters: any[]; timeDimensions: any[] }) {
+  const { resultSet, isLoading, error } = useCubeQuery({
+    measures: ['sales.invoicing'],
     dimensions: ['stores.name'],
     filters: filters,
     timeDimensions: timeDimensions,
-    order: {
-      'sales.invoicing': 'desc'
-    }
+    order: { 'sales.invoicing': 'desc' },
+    limit: 5
+  });
+
+  if (error) return <div>Erro (Top5 Invoicing): {error.toString()}</div>;
+  if (isLoading) return <div>A carregar Top 5 Faturamento...</div>;
+  const data = resultSet?.tablePivot() || [];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Top 5 Lojas (Faturamento)</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow><TableHead>Loja</TableHead><TableHead>Faturamento</TableHead></TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.map((row, index) => (
+              <TableRow key={index}>
+                <TableCell>{String(row['stores.name'])}</TableCell>
+                <TableCell>{String(row['sales.invoicing'])}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
+function Top5StoresByCancellation({ filters, timeDimensions }: { filters: any[]; timeDimensions: any[] }) {
+  const { resultSet, isLoading, error } = useCubeQuery({
+    measures: ['sales.cancellation_rate'],
+    dimensions: ['stores.name'],
+    filters: filters,
+    timeDimensions: timeDimensions,
+    order: { 'sales.cancellation_rate': 'desc' },
+    limit: 5
+  });
+
+  if (error) return <div>Erro (Top5 Cancellation): {error.toString()}</div>;
+  if (isLoading) return <div>A carregar Top 5 Cancelamento...</div>;
+  const data = resultSet?.tablePivot() || [];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Top 5 Lojas (Taxa de Cancelamento)</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow><TableHead>Loja</TableHead><TableHead>Taxa de Cancel.</TableHead></TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.map((row, index) => (
+              <TableRow key={index}>
+                <TableCell>{String(row['stores.name'])}</TableCell>
+                <TableCell>{String(row['sales.cancellation_rate'])}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
+function Top5StoresByGrowth({ filters, dateRange, timeDimensions }: { filters: any[]; dateRange: [string, string]; timeDimensions: any[] }) {
+  
+  const previousDateRange = getPreviousPeriod(dateRange);
+
+  const { resultSet: currentData, isLoading: isLoadingCurrent, error: errorCurrent } = useCubeQuery({
+    measures: ['sales.invoicing'],
+    dimensions: ['stores.name'],
+    filters: filters,
+    timeDimensions: timeDimensions
   });
   
   const { resultSet: previousData, isLoading: isLoadingPrevious, error: errorPrevious } = useCubeQuery({
-    measures: [
-      'sales.invoicing',
-    ],
+    measures: ['sales.invoicing'],
     dimensions: ['stores.name'],
     filters: filters,
     timeDimensions: [
@@ -120,12 +187,9 @@ function StoreRankingTable({ filters, dateRange, timeDimensions }: { filters: an
     
     const currentPivot = currentData.tablePivot();
     const previousPivot = previousData.tablePivot();
+    const previousMap = new Map(previousPivot.map(row => [row['stores.name'], row['sales.invoicing']]));
 
-    const previousMap = new Map(
-      previousPivot.map(row => [row['stores.name'], row['sales.invoicing']])
-    );
-
-    return currentPivot.map(currentRow => {
+    const allStores = currentPivot.map(currentRow => {
       const storeName = String((currentRow as any)['stores.name']);
       const currentInvoicing = parseFloat(String((currentRow as any)['sales.invoicing']));
       const previousInvoicing = parseFloat(String(previousMap.get(storeName))) || 0;
@@ -138,10 +202,16 @@ function StoreRankingTable({ filters, dateRange, timeDimensions }: { filters: an
       }
       
       return {
-        ...(currentRow as any),
-        growth: growth.toFixed(1) + '%',
+        'stores.name': storeName,
+        'sales.invoicing': currentInvoicing,
+        'growth': growth,
       };
     });
+    
+    allStores.sort((a, b) => b.growth - a.growth);
+    
+    return allStores.slice(0, 5);
+    
   }, [currentData, previousData]) as any[];
 
   const isLoading = isLoadingCurrent || isLoadingPrevious;
@@ -150,34 +220,23 @@ function StoreRankingTable({ filters, dateRange, timeDimensions }: { filters: an
   if (errorPrevious) return <div>Erro (PreviousData): {errorPrevious.toString()}</div>;
 
   return (
-    <Card className="m-4">
+    <Card>
       <CardHeader>
-        <CardTitle>Ranking de Lojas (US04 / US13)</CardTitle>
+        <CardTitle>Top 5 Lojas (Crescimento %)</CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div>A carregar ranking...</div>
+          <div>A carregar Top 5 Crescimento...</div>
         ) : (
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Loja</TableHead>
-                <TableHead>Faturamento</TableHead>
-                <TableHead>Crescimento % (vs. Período Ant.)</TableHead>
-                <TableHead>Ticket Médio</TableHead>
-                <TableHead>Taxa de Cancelamento</TableHead>
-                <TableHead>Tempo de Entrega (min)</TableHead>
-              </TableRow>
+              <TableRow><TableHead>Loja</TableHead><TableHead>Crescimento %</TableHead></TableRow>
             </TableHeader>
             <TableBody>
               {mergedData.map((row, index) => (
                 <TableRow key={index}>
-                  <TableCell className="font-medium">{String(row['stores.name'])}</TableCell>
-                  <TableCell>{String(row['sales.invoicing'])}</TableCell>
-                  <TableCell>{String(row.growth)}</TableCell>
-                  <TableCell>{String(row['sales.avg_ticket'])}</TableCell>
-                  <TableCell>{String(row['sales.cancellation_rate'])}</TableCell>
-                  <TableCell>{parseFloat(String(row['sales.avg_delivery_time'])).toFixed(1)}</TableCell>
+                  <TableCell>{String(row['stores.name'])}</TableCell>
+                  <TableCell>{row.growth.toFixed(1)}%</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -188,19 +247,15 @@ function StoreRankingTable({ filters, dateRange, timeDimensions }: { filters: an
   );
 }
 
-interface CityFilterProps {
-  selectedCity: string | null;
-  onCityChange: (city: string | null) => void;
-}
 
-function CityFilter({ selectedCity, onCityChange }: CityFilterProps) {
+function CityFilter({ selectedCity, onCityChange }: { selectedCity: string | null, onCityChange: (city: string | null) => void }) {
   const { resultSet, isLoading, error } = useCubeQuery({ dimensions: ['stores.city'] });
   if (isLoading) return <div>A carregar cidades...</div>;
   if (error) return <div>Erro (CityFilter): {error.toString()}</div>;
 
   const cities = (resultSet?.tablePivot() || [])
     .map(row => row['stores.city'])
-    .filter(city => city)
+    .filter(city => city) 
     .sort();
   
   const uniqueCities = [...new Set(cities)];
@@ -246,13 +301,8 @@ export default function PaginaLojas() {
       dateRange: dateRange, 
     },
   ];
-
-  const completedFilters: any[] = [
-    {
-      member: 'sales.sale_status_desc',
-      operator: 'equals' as const, 
-      values: ['COMPLETED']
-    },
+  
+  const baseFilters: any[] = [
     ...(selectedStore ? [{ 
       member: 'stores.name',
       operator: 'equals' as const,
@@ -263,6 +313,19 @@ export default function PaginaLojas() {
       operator: 'equals' as const,
       values: [selectedCity]
     }] : [])
+  ];
+
+  const completedFilters: any[] = [
+    {
+      member: 'sales.sale_status_desc',
+      operator: 'equals' as const, 
+      values: ['COMPLETED']
+    },
+    ...baseFilters
+  ];
+
+  const allFilters: any[] = [
+    ...baseFilters
   ];
   
   return (
@@ -276,9 +339,19 @@ export default function PaginaLojas() {
 
         <OwnVsFranchiseChart filters={completedFilters} timeDimensions={timeDimensions} />
         
-        <hr/>
-        
-        <StoreRankingTable filters={completedFilters} dateRange={dateRange} timeDimensions={timeDimensions} />
+        <hr className="my-4"/>
+
+        <div className="p-4 flex justify-end">
+          <Button asChild>
+            <Link href="/lojas/tabela-completa">Ampliar (Ver Tabela Completa) &rarr;</Link>
+          </Button>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-4 p-4">
+          <Top5StoresByInvoicing filters={completedFilters} timeDimensions={timeDimensions} />
+          <Top5StoresByCancellation filters={allFilters} timeDimensions={timeDimensions} />
+          <Top5StoresByGrowth filters={completedFilters} dateRange={dateRange} timeDimensions={timeDimensions} />
+        </div>
 
       </main>
     </CubeProvider>
