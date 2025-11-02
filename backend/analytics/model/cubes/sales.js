@@ -131,7 +131,7 @@ cube(`sales`, {
       sql: `store_id`,
       type: `number`
     },
-    
+
     customer_id: {
       sql: `customer_id`,
       type: `number`
@@ -188,6 +188,25 @@ cube(`sales`, {
       sql: `(${count_cancelled}::float / ${count}::float)`,
       format: `percent`,
       title: `Taxa de Cancelamento`
+    },
+
+    frequency: {
+      type: `countDistinct`,
+      sql: `id`,
+      title: "Nº de Compras"
+    },
+    
+    ltv: {
+      type: `sum`,
+      sql: `total_amount`,
+      format: `currency`,
+      title: "Gasto Total (LTV)"
+    },
+    
+    days_since_last_purchase: {
+      type: `number`,
+      sql: `DATE_PART('day', NOW() - MAX(${CUBE}.created_at))`,
+      title: "Dias desde a Última Compra"
     }
   },
   
