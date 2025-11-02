@@ -22,6 +22,11 @@ cube(`stores`, {
       primary_key: true
     },
     
+    sub_brand_id: {
+      sql: `sub_brand_id`,
+      type: `number`
+    },
+
     address_street: {
       sql: `address_street`,
       type: `string`

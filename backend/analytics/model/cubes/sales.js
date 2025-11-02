@@ -42,6 +42,11 @@ cube(`sales`, {
       primary_key: true
     },
     
+    sub_brand_id: {
+      sql: `sub_brand_id`,
+      type: `number`
+    },
+
     cod_sale1: {
       sql: `cod_sale1`,
       type: `string`
