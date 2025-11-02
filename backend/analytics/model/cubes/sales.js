@@ -47,6 +47,11 @@ cube(`sales`, {
       type: `number`
     },
 
+    channel_id: {
+      sql: `channel_id`,
+      type: `number`
+    },
+
     cod_sale1: {
       sql: `cod_sale1`,
       type: `string`
