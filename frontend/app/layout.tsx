@@ -1,10 +1,9 @@
-
+// Em: frontend/app/layout.tsx
 import type { Metadata } from "next";
-import { Geist } from "next/font/google"; 
+import { Geist } from "next/font/google";
 import "./globals.css"; 
 import { Providers } from "./providers"; 
 import { Sidebar } from "@/components/sidebar";
-import { GlobalFilters } from "@/components/global-filters";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,8 +27,7 @@ export default function RootLayout({
           <div className="flex">
             <Sidebar />
             <main className="flex-1 h-screen overflow-y-auto">
-              <GlobalFilters />
-              {children}
+             {children}
             </main>
           </div>
         </Providers>
