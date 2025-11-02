@@ -130,7 +130,12 @@ cube(`sales`, {
     store_id: {
       sql: `store_id`,
       type: `number`
-    }
+    },
+    
+    customer_id: {
+      sql: `customer_id`,
+      type: `number`
+    },
   },
   
   measures: {
