@@ -244,7 +244,7 @@ preAggregations: {
         products.name,
         items.name,
         delivery_addresses.neighborhood,
-        customers.name,
+        customers.customer_name,
         channels.name
       ],
       
