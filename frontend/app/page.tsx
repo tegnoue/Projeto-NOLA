@@ -289,6 +289,69 @@ function DateFilter({ dateRange, onDateChange }: DateFilterProps) {
   );
 }
 
+interface TopItemsProps {
+  selectedStore: string | null;
+  dateRange: [string, string];
+}
+
+function TopItems({ selectedStore, dateRange }: TopItemsProps) {
+  
+  const filters = [
+    {
+      member: 'sales.sale_status_desc',
+      operator: 'equals' as const,
+      values: ['COMPLETED']
+    }
+  ];
+  if (selectedStore) {
+    filters.push({
+      member: 'stores.name',
+      operator: 'equals' as const,
+      values: [selectedStore]
+    });
+  }
+  
+  const { resultSet, isLoading, error } = useCubeQuery({
+    measures: [
+      'item_product_sales.revenue',
+      'item_product_sales.times_added'
+    ],
+    dimensions: [
+      'items.name'
+    ],
+    order: {
+      'item_product_sales.revenue': 'desc' 
+    },
+    limit: 10,
+    filters: filters,
+    timeDimensions: [
+      {
+        dimension: 'sales.created_at',
+        dateRange: dateRange,
+      },
+    ],
+  });
+
+  if (error) return <div>Erro (TopItems): {error.toString()}</div>;
+  if (isLoading) return <div>A carregar Top Itens...</div>;
+  
+  const items = resultSet?.tablePivot() || [];
+
+  return (
+    <div style={{ fontFamily: 'Arial', margin: '20px' }}>
+      <h2>Top 10 Itens/Complementos por Receita (US09)</h2>
+      <ol>
+        {items.map((item, index) => (
+          <li key={index}>
+            <strong>{item['items.name']}</strong>: 
+            {item['item_product_sales.revenue']} (adicionado {item['item_product_sales.times_added']} vezes)
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 export default function Home() {
   
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
@@ -319,7 +382,15 @@ export default function Home() {
       
       <hr/>
       
-      <TopProductsPerInvoicing selectedStore={selectedStore} dateRange={dateRange} />
+      <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: '300px' }}>
+          <TopProductsPerInvoicing selectedStore={selectedStore} dateRange={dateRange} />
+        </div>
+        <div style={{ flex: 1, minWidth: '300px' }}>
+          <TopItems selectedStore={selectedStore} dateRange={dateRange} />
+        </div>
+      </div>
+
     </CubeProvider>
   );
 }
