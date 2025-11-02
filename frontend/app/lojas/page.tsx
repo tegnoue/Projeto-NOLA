@@ -4,7 +4,6 @@ import cubeApi from '../../lib/cube';
 import { CubeProvider, useCubeQuery } from '@cubejs-client/react';
 import React, { useMemo, useState } from 'react'; 
 import Link from 'next/link';
-import { useFilters } from '@/lib/filters-context';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
@@ -32,6 +31,9 @@ import {
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
+type DateRange = [string, string];
+type DateFilterPreset = 'monthly' | 'weekly' | 'yearly';
+
 function getPreviousPeriod(dateRange: [string, string]): [string, string] {
   try {
     const start = new Date(dateRange[0]);
@@ -49,6 +51,24 @@ function getPreviousPeriod(dateRange: [string, string]): [string, string] {
   } catch (e) {
     return dateRange;
   }
+}
+
+function getDateRangeFromPreset(preset: DateFilterPreset): DateRange {
+  const end = new Date();
+  const start = new Date();
+  
+  if (preset === 'weekly') {
+    start.setDate(end.getDate() - 7);
+  } else if (preset === 'monthly') {
+    start.setMonth(end.getMonth() - 1);
+  } else if (preset === 'yearly') {
+    start.setFullYear(end.getFullYear() - 1);
+  }
+  
+  return [
+    start.toISOString().split('T')[0],
+    end.toISOString().split('T')[0]
+  ];
 }
 
 function OwnVsFranchiseChart({ filters, timeDimensions }: { filters: any[]; timeDimensions: any[] }) {
@@ -159,7 +179,7 @@ function Top5StoresByCancellation({ filters, timeDimensions }: { filters: any[];
   );
 }
 
-function Top5StoresByGrowth({ filters, dateRange, timeDimensions }: { filters: any[]; dateRange: [string, string]; timeDimensions: any[] }) {
+function Top5StoresByGrowth({ filters, dateRange, timeDimensions }: { filters: any[]; dateRange: DateRange; timeDimensions: any[] }) {
   
   const previousDateRange = getPreviousPeriod(dateRange);
 
@@ -290,10 +310,56 @@ function CityFilter({ selectedCity, onCityChange }: { selectedCity: string | nul
   );
 }
 
+function SubBrandFilter({ selectedSubBrand, onSubBrandChange }: { selectedSubBrand: string | null, onSubBrandChange: (subBrandId: string | null) => void }) {
+  const { resultSet, isLoading, error } = useCubeQuery({ dimensions: ['stores.sub_brand_id'] });
+  if (isLoading) return <div>A carregar sub-marcas...</div>;
+  if (error) return <div>Erro (SubBrandFilter): {error.toString()}</div>;
+
+  const subBrands = (resultSet?.tablePivot() || [])
+    .map(row => row['stores.sub_brand_id'])
+    .filter(id => id) 
+    .sort();
+  
+  const uniqueSubBrands = [...new Set(subBrands)];
+
+  return (
+    <div className="flex items-center space-x-2">
+      <Label className="font-medium text-sm">Sub-Marca:</Label>
+      <Select 
+        value={selectedSubBrand || ""}
+        onValueChange={(value) => onSubBrandChange(value || null)}
+      >
+        <SelectTrigger className="w-[180px]">
+          <SelectValue placeholder="-- Todas as Sub-Marcas --" />
+        </SelectTrigger>
+        <SelectContent>
+          {uniqueSubBrands.map((id, index) => (
+            <SelectItem key={index} value={String(id)}>
+              {String(id)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function DatePresetFilter({ onPresetChange }: { onPresetChange: (preset: DateFilterPreset) => void }) {
+  return (
+    <div className="flex items-center space-x-2">
+      <Label className="font-medium text-sm">Período:</Label>
+      <Button variant="outline" size="sm" onClick={() => onPresetChange('weekly')}>Semanal</Button>
+      <Button variant="outline" size="sm" onClick={() => onPresetChange('monthly')}>Mensal</Button>
+      <Button variant="outline" size="sm" onClick={() => onPresetChange('yearly')}>Anual</Button>
+    </div>
+  );
+}
+
 export default function PaginaLojas() {
   
-  const { selectedStore, dateRange } = useFilters();
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
+  const [selectedSubBrand, setSelectedSubBrand] = useState<string | null>(null);
+  const [dateRange, setDateRange] = useState<DateRange>(getDateRangeFromPreset('monthly'));
   
   const timeDimensions: any[] = [
     {
@@ -301,17 +367,17 @@ export default function PaginaLojas() {
       dateRange: dateRange, 
     },
   ];
-  
+
   const baseFilters: any[] = [
-    ...(selectedStore ? [{ 
-      member: 'stores.name',
-      operator: 'equals' as const,
-      values: [selectedStore]
-    }] : []),
     ...(selectedCity ? [{ 
       member: 'stores.city',
       operator: 'equals' as const,
       values: [selectedCity]
+    }] : []),
+    ...(selectedSubBrand ? [{ 
+      member: 'stores.sub_brand_id',
+      operator: 'equals' as const,
+      values: [selectedSubBrand]
     }] : [])
   ];
 
@@ -334,7 +400,9 @@ export default function PaginaLojas() {
         <h1 className="text-3xl font-bold p-4">Análise de Lojas (US13)</h1>
         
         <div className="p-4 bg-gray-50 border-t border-b flex flex-wrap items-center gap-4">
+          <DatePresetFilter onPresetChange={(preset) => setDateRange(getDateRangeFromPreset(preset))} />
           <CityFilter selectedCity={selectedCity} onCityChange={setSelectedCity} />
+          <SubBrandFilter selectedSubBrand={selectedSubBrand} onSubBrandChange={setSelectedSubBrand} />
         </div>
 
         <OwnVsFranchiseChart filters={completedFilters} timeDimensions={timeDimensions} />
