@@ -1,6 +1,6 @@
 'use client'; 
     
-import cubeApi from '../../lib/cube'; 
+import cubeApi from '../../lib/cube';
 import { CubeProvider, useCubeQuery } from '@cubejs-client/react';
 import React, { useState } from 'react'; 
 import { 
@@ -12,6 +12,12 @@ import {
   Tooltip, 
   ResponsiveContainer 
 } from 'recharts';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 interface KpiProps {
   filters: any; 
@@ -34,23 +40,50 @@ function KpisOperacionais({ filters, timeDimensions }: KpiProps) {
   const data = resultSet?.tablePivot()[0];
 
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap' }}>
-      <div style={{ padding: '10px', border: '1px solid #eee', margin: '5px', minWidth: '200px', textAlign: 'center' }}>
-        <h3>Tempo Médio de Preparo (min)</h3>
-        <h1>{isLoading ? '...' : (data ? parseFloat(String(data['sales.avg_prep_time'])).toFixed(1) : 'N/A')}</h1>
-      </div>
-      <div style={{ padding: '10px', border: '1px solid #eee', margin: '5px', minWidth: '200px', textAlign: 'center' }}>
-        <h3>Tempo Médio de Entrega (min)</h3>
-        <h1>{isLoading ? '...' : (data ? parseFloat(String(data['sales.avg_delivery_time'])).toFixed(1) : 'N/A')}</h1>
-      </div>
-      <div style={{ padding: '10px', border: '1px solid #eee', margin: '5px', minWidth: '200px', textAlign: 'center' }}>
-        <h3>Vendas Canceladas (US10)</h3>
-        <h1>{isLoading ? '...' : (data ? data['sales.count_cancelled'] : 'N/A')}</h1>
-      </div>
-      <div style={{ padding: '10px', border: '1px solid #eee', margin: '5px', minWidth: '200px', textAlign: 'center' }}>
-        <h3>Taxa de Cancelamento (US10)</h3>
-        <h1>{isLoading ? '...' : (data ? data['sales.cancellation_rate'] : 'N/A')}</h1>
-      </div>
+    <div className="grid gap-4 md:grid-cols-4 p-4">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Tempo Médio de Preparo (min)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">
+            {isLoading ? '...' : (data ? parseFloat(String(data['sales.avg_prep_time'])).toFixed(1) : 'N/A')}
+          </div>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Tempo Médio de Entrega (min)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">
+            {isLoading ? '...' : (data ? parseFloat(String(data['sales.avg_delivery_time'])).toFixed(1) : 'N/A')}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Vendas Canceladas (US10)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">
+            {isLoading ? '...' : (data ? data['sales.count_cancelled'] : 'N/A')}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Taxa de Cancelamento (US10)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">
+            {isLoading ? '...' : (data ? data['sales.cancellation_rate'] : 'N/A')}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -77,16 +110,20 @@ function RankingBairros({ filters, timeDimensions }: KpiProps) {
   const data = resultSet?.tablePivot() || [];
 
   return (
-    <div style={{ marginTop: '20px' }}>
-      <h2>Top 5 Piores Bairros (Tempo de Entrega)</h2>
-      <ol>
-        {data.map((row, index) => (
-          <li key={index}>
-            <strong>{row['delivery_addresses.neighborhood']}</strong>: 
-            {parseFloat(String(row['sales.avg_delivery_time'])).toFixed(1)} min
-          </li>
-        ))}
-      </ol>
+    <div className="p-4">
+      <h2 className="text-xl font-semibold mb-2">Top 5 Piores Bairros (Tempo de Entrega)</h2>
+      <Card>
+        <CardContent className="pt-4">
+          <ol className="list-decimal list-inside">
+            {data.map((row, index) => (
+              <li key={index} className="border-b last:border-b-0 py-2">
+                <strong>{row['delivery_addresses.neighborhood']}</strong>: 
+                {parseFloat(String(row['sales.avg_delivery_time'])).toFixed(1)} min
+              </li>
+            ))}
+          </ol>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -112,19 +149,20 @@ function TempoPorHora({ filters, timeDimensions }: KpiProps) {
   if (error) return <div>Erro (TempoPorHora): {error.toString()}</div>;
   if (isLoading) return <div>A carregar tempo por hora...</div>;
   
-  const data = resultSet?.tablePivot() || [];
+  const data = resultSet?.rawData() || [];
 
   return (
-    <div style={{ marginTop: '20px' }}>
-      <h2>Tempo de Entrega por Hora do Dia</h2>
-      <ul style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid #ccc' }}>
-        {data.map((row, index) => (
-          <li key={index}>
-            <strong>{row['sales.created_at.hour']}</strong>: 
-            {parseFloat(String(row['sales.avg_delivery_time'])).toFixed(1)} min
-          </li>
-        ))}
-      </ul>
+    <div className="p-4 h-80">
+      <h2 className="text-xl font-semibold mb-2">Tempo de Entrega por Hora do Dia</h2>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="sales.created_at.hour" />
+          <YAxis />
+          <Tooltip />
+          <Bar dataKey="sales.avg_delivery_time" fill="#d946ef" />
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   );
 }
@@ -150,8 +188,8 @@ function CancelamentoPorCanal({ filters, timeDimensions }: KpiProps) {
   const data = resultSet?.rawData() || [];
 
   return (
-    <div style={{ fontFamily: 'Arial', margin: '20px', height: '300px' }}>
-      <h2>Taxa de Cancelamento por Canal (US10)</h2>
+    <div className="p-4 h-80">
+      <h2 className="text-xl font-semibold mb-2">Taxa de Cancelamento por Canal (US10)</h2>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" />
@@ -175,7 +213,6 @@ export default function PaginaOperacional() {
   ]);
 
   const filters: any[] = [ 
-    // (Não filtramos por 'COMPLETED' aqui, pois queremos incluir os 'CANCELLED')
     ...(selectedStore ? [{ 
       member: 'stores.name',
       operator: 'equals' as const,
@@ -205,24 +242,26 @@ export default function PaginaOperacional() {
   
   return (
     <CubeProvider cubeApi={cubeApi}>
-      <div style={{ fontFamily: 'Arial', margin: '20px' }}>
-        <h1>Dashboard Operacional (US07)</h1>
+      <main className="font-sans">
+        <h1 className="text-3xl font-bold p-4">Dashboard Operacional (US07)</h1>
         
-        <div style={{ display: 'flex', padding: '10px', background: '#f4f4f4' }}>
+        <div className="p-4 bg-gray-50 border-t border-b flex flex-wrap items-center">
           <StoreFilter onStoreChange={setSelectedStore} />
           <DateFilter dateRange={dateRange} onDateChange={setDateRange} />
         </div>
         
-        <hr />
         <KpisOperacionais filters={filters} timeDimensions={timeDimensions} />
-        <hr />
-        <CancelamentoPorCanal filters={filters} timeDimensions={timeDimensions} />
-        <hr />
-        <RankingBairros filters={completedFilters} timeDimensions={timeDimensions} />
-        <hr />
-        <TempoPorHora filters={completedFilters} timeDimensions={timeDimensions} />
+        
+        <div className="grid md:grid-cols-2 gap-4">
+          <CancelamentoPorCanal filters={filters} timeDimensions={timeDimensions} />
+          <TempoPorHora filters={completedFilters} timeDimensions={timeDimensions} />
+        </div>
 
-      </div>
+        <hr />
+        
+        <RankingBairros filters={completedFilters} timeDimensions={timeDimensions} />
+
+      </main>
     </CubeProvider>
   );
 }
@@ -237,9 +276,12 @@ function StoreFilter({ onStoreChange }: StoreFilterProps) {
   const stores = resultSet?.tablePivot() || [];
 
   return (
-    <div style={{ marginRight: '20px' }}>
-      <strong>Filtro de Loja: </strong>
-      <select onChange={(e) => onStoreChange(e.target.value || null)}>
+    <div className="mr-4">
+      <label className="font-medium">Filtro de Loja: </label>
+      <select 
+        onChange={(e) => onStoreChange(e.target.value || null)}
+        className="border p-2 rounded"
+      >
         <option value="">-- Todas as Lojas --</option>
         {stores.map((store, index) => (
           <option key={index} value={String(store['stores.name'])}>
@@ -258,11 +300,20 @@ interface DateFilterProps {
 function DateFilter({ dateRange, onDateChange }: DateFilterProps) {
   return (
     <div>
-      <strong>Filtro de Data: </strong>
-      <label>De: </label>
-      <input type="date" value={dateRange[0]} onChange={(e) => onDateChange([e.target.value, dateRange[1]])} />
-      <label style={{ marginLeft: '10px' }}>Até: </label>
-      <input type="date" value={dateRange[1]} onChange={(e) => onDateChange([dateRange[0], e.target.value])} />
+      <label className="font-medium">Filtro de Data: </label>
+      <input 
+        type="date" 
+        value={dateRange[0]} 
+        onChange={(e) => onDateChange([e.target.value, dateRange[1]])}
+        className="border p-2 rounded"
+      />
+      <label className="mx-2">Até:</label>
+      <input 
+        type="date" 
+        value={dateRange[1]} 
+        onChange={(e) => onDateChange([dateRange[0], e.target.value])} 
+        className="border p-2 rounded"
+      />
     </div>
   );
 }
