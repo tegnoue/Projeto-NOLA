@@ -12,6 +12,11 @@ cube(`product_sales`, {
     sales: {
       sql: `${CUBE}.sale_id = ${sales.id}`,
       relationship: `many_to_one`
+    },
+
+    item_product_sales: {
+    sql: `${CUBE}.id = ${item_product_sales}.product_sale_id`,
+    relationship: `hasMany`
     }
   },
   
