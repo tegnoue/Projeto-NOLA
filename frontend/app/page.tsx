@@ -4,14 +4,14 @@ import cubeApi from '../lib/cube';
 import { CubeProvider, useCubeQuery } from '@cubejs-client/react';
 import React, { useState } from 'react'; 
 import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 interface DataDisplayProps {
   selectedStore: string | null;
@@ -51,28 +51,43 @@ function DataDisplay({ selectedStore, dateRange }: DataDisplayProps) {
   });
 
   if (error) return <div>Erro (DataDisplay): {error.toString()}</div>;
+  
   const data = resultSet?.tablePivot()[0];
 
   return (
-    <div style={{ fontFamily: 'Arial', margin: '20px' }}>
-      {isLoading ? (
-        <div>A carregar dados...</div>
-      ) : (
-        <div style={{ display: 'flex', flexWrap: 'wrap' }}>
-          <div style={{ padding: '10px', border: '1px solid #eee', margin: '5px', minWidth: '200px', textAlign: 'center' }}>
-            <h3>Vendas Totais</h3>
-            <h1>{data ? data['sales.count'] : '...'}</h1>
+    <div className="grid gap-4 md:grid-cols-3 p-4">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Vendas Totais</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">
+            {isLoading ? '...' : (data ? data['sales.count'] : 'N/A')}
           </div>
-          <div style={{ padding: '10px', border: '1px solid #eee', margin: '5px', minWidth: '200px', textAlign: 'center' }}>
-            <h3>Faturamento</h3>
-            <h1>{data ? data['sales.invoicing'] : '...'}</h1>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Faturamento</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">
+            {isLoading ? '...' : (data ? data['sales.invoicing'] : 'N/A')}
           </div>
-          <div style={{ padding: '10px', border: '1px solid #eee', margin: '5px', minWidth: '200px', textAlign: 'center' }}>
-            <h3>Ticket Médio</h3>
-            <h1>{data ? data['sales.avg_ticket'] : '...'}</h1>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Ticket Médio</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">
+            {isLoading ? '...' : (data ? data['sales.avg_ticket'] : 'N/A')}
           </div>
-        </div>
-      )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -125,15 +140,19 @@ function TopProductsPerInvoicing({ selectedStore, dateRange }: TopProductsProps)
   const products = resultSet?.tablePivot() || [];
 
   return (
-    <div style={{ fontFamily: 'Arial', margin: '20px' }}>
-      <h2>Top 10 Produtos por faturamento (no período)</h2>
-      <ol>
-        {products.map((product, index) => (
-          <li key={index}>
-            <strong>{product['products.name']}</strong>: {product['sales.invoicing']}
-          </li>
-        ))}
-      </ol>
+    <div className="p-4">
+      <h2 className="text-xl font-semibold mb-2">Top 10 Produtos por faturamento</h2>
+      <Card>
+        <CardContent className="pt-4">
+          <ol className="list-decimal list-inside">
+            {products.map((product, index) => (
+              <li key={index} className="border-b last:border-b-0 py-2">
+                <strong>{product['products.name']}</strong>: {product['sales.invoicing']}
+              </li>
+            ))}
+          </ol>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -180,8 +199,8 @@ function SalesByHourChart({ selectedStore, dateRange }: ChartComponentProps) {
   const data = resultSet?.rawData() || [];
 
   return (
-    <div style={{ fontFamily: 'Arial', margin: '20px', height: '300px' }}>
-      <h2>Faturamento por Hora (US06)</h2>
+    <div className="p-4 h-80">
+      <h2 className="text-xl font-semibold mb-2">Faturamento por Hora (US06)</h2>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" />
@@ -232,8 +251,8 @@ function SalesByDayOfWeekChart({ selectedStore, dateRange }: ChartComponentProps
   const data = resultSet?.rawData() || [];
 
   return (
-    <div style={{ fontFamily: 'Arial', margin: '20px', height: '300px' }}>
-      <h2>Faturamento por Dia da Semana (US06)</h2>
+    <div className="p-4 h-80">
+      <h2 className="text-xl font-semibold mb-2">Faturamento por Dia da Semana (US06)</h2>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" />
@@ -258,9 +277,12 @@ function StoreFilter({ onStoreChange }: StoreFilterProps) {
   const stores = resultSet?.tablePivot() || [];
 
   return (
-    <div style={{ marginRight: '20px' }}>
-      <strong>Filtro de Loja (US04): </strong>
-      <select onChange={(e) => onStoreChange(e.target.value || null)}>
+    <div className="mr-4">
+      <label className="font-medium">Filtro de Loja (US04): </label>
+      <select 
+        onChange={(e) => onStoreChange(e.target.value || null)}
+        className="border p-2 rounded"
+      >
         <option value="">-- Todas as Lojas --</option>
         {stores.map((store, index) => (
           <option key={index} value={String(store['stores.name'])}>
@@ -280,11 +302,20 @@ interface DateFilterProps {
 function DateFilter({ dateRange, onDateChange }: DateFilterProps) {
   return (
     <div>
-      <strong>Filtro de Data (US02): </strong>
-      <label>De: </label>
-      <input type="date" value={dateRange[0]} onChange={(e) => onDateChange([e.target.value, dateRange[1]])} />
-      <label style={{ marginLeft: '10px' }}>Até: </label>
-      <input type="date" value={dateRange[1]} onChange={(e) => onDateChange([dateRange[0], e.target.value])} />
+      <label className="font-medium">Filtro de Data (US02): </label>
+      <input 
+        type="date" 
+        value={dateRange[0]} 
+        onChange={(e) => onDateChange([e.target.value, dateRange[1]])}
+        className="border p-2 rounded"
+      />
+      <label className="mx-2">Até:</label>
+      <input 
+        type="date" 
+        value={dateRange[1]} 
+        onChange={(e) => onDateChange([dateRange[0], e.target.value])} 
+        className="border p-2 rounded"
+      />
     </div>
   );
 }
@@ -338,16 +369,20 @@ function TopItems({ selectedStore, dateRange }: TopItemsProps) {
   const items = resultSet?.tablePivot() || [];
 
   return (
-    <div style={{ fontFamily: 'Arial', margin: '20px' }}>
-      <h2>Top 10 Itens/Complementos por Receita (US09)</h2>
-      <ol>
-        {items.map((item, index) => (
-          <li key={index}>
-            <strong>{item['items.name']}</strong>: 
-            {item['item_product_sales.revenue']} (adicionado {item['item_product_sales.times_added']} vezes)
-          </li>
-        ))}
-      </ol>
+    <div className="p-4">
+      <h2 className="text-xl font-semibold mb-2">Top 10 Itens por Receita (US09)</h2>
+      <Card>
+        <CardContent className="pt-4">
+          <ol className="list-decimal list-inside">
+            {items.map((item, index) => (
+              <li key={index} className="border-b last:border-b-0 py-2">
+                <strong>{item['items.name']}</strong>: 
+                {item['item_product_sales.revenue']} (adicionado {item['item_product_sales.times_added']} vezes)
+              </li>
+            ))}
+          </ol>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -362,35 +397,28 @@ export default function Home() {
   
   return (
     <CubeProvider cubeApi={cubeApi}>
-      <h1>Dashboard Financeiro (Home)</h1>
-      
-      <div style={{ fontFamily: 'Arial', margin: '20px', padding: '10px', background: '#f4f4f4', display: 'flex' }}>
-        <StoreFilter onStoreChange={setSelectedStore} />
-        <DateFilter dateRange={dateRange} onDateChange={setDateRange} />
-      </div>
-      
-      <DataDisplay selectedStore={selectedStore} dateRange={dateRange} />
-      
-      <div style={{ display: 'flex', flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: '400px' }}>
-          <SalesByHourChart selectedStore={selectedStore} dateRange={dateRange} />
+      <main className="font-sans">
+        <h1 className="text-3xl font-bold p-4">Dashboard Financeiro (Home)</h1>
+        
+        <div className="p-4 bg-gray-50 border-t border-b flex flex-wrap items-center">
+          <StoreFilter onStoreChange={setSelectedStore} />
+          <DateFilter dateRange={dateRange} onDateChange={setDateRange} />
         </div>
-        <div style={{ flex: 1, minWidth: '400px' }}>
+        
+        <DataDisplay selectedStore={selectedStore} dateRange={dateRange} />
+        
+        <div className="grid md:grid-cols-2 gap-4">
+          <SalesByHourChart selectedStore={selectedStore} dateRange={dateRange} />
           <SalesByDayOfWeekChart selectedStore={selectedStore} dateRange={dateRange} />
         </div>
-      </div>
-      
-      <hr/>
-      
-      <div style={{ display: 'flex', flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: '300px' }}>
+        
+        <hr/>
+        
+        <div className="grid md:grid-cols-2 gap-4">
           <TopProductsPerInvoicing selectedStore={selectedStore} dateRange={dateRange} />
-        </div>
-        <div style={{ flex: 1, minWidth: '300px' }}>
           <TopItems selectedStore={selectedStore} dateRange={dateRange} />
         </div>
-      </div>
-
+      </main>
     </CubeProvider>
   );
 }
