@@ -210,8 +210,42 @@ cube(`sales`, {
     }
   },
   
-  pre_aggregations: {
-    // Pre-aggregation definitions go here.
-    // Learn more in the documentation: https://cube.dev/docs/caching/pre-aggregations/getting-started
+preAggregations: {
+    main: {
+      type: `rollup`,
+
+      measures: [
+        sales.count,
+        sales.invoicing,
+        sales.avg_prep_time,
+        sales.avg_delivery_time,
+        sales.count_cancelled,
+        sales.cancellation_rate,
+        sales.frequency,
+        sales.ltv,
+        sales.days_since_last_purchase,
+        item_product_sales.revenue,
+        item_product_sales.times_added 
+      ],
+
+      dimensions: [
+        sales.sale_status_desc,
+        sales.hourOfDay,
+        sales.dayOfWeek,
+        stores.name,
+        stores.is_own,
+        stores.city,
+        stores.sub_brand_id,
+        products.name,
+        items.name,
+        delivery_addresses.neighborhood,
+        customers.name,
+        channels.name
+      ],
+      
+      timeDimension: sales.created_at,
+      granularity: `day`
+    }
   }
+  
 });
