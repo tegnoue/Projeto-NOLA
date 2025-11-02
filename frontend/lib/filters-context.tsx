@@ -1,4 +1,3 @@
-// Em: frontend/lib/filters-context.tsx
 'use client';
 import React, { createContext, useState, useContext, ReactNode } from 'react';
 
@@ -9,6 +8,8 @@ interface FiltersContextType {
   setSelectedStore: (store: string | null) => void;
   dateRange: DateRange;
   setDateRange: (range: DateRange) => void;
+  selectedCity: string | null; // <-- ADICIONE ESTA LINHA
+  setSelectedCity: (city: string | null) => void; // <-- ADICIONE ESTA LINHA
 }
 
 const FiltersContext = createContext<FiltersContextType | undefined>(undefined);
@@ -19,11 +20,13 @@ export function FiltersProvider({ children }: { children: ReactNode }) {
     '2025-01-01', 
     '2025-12-31'
   ]);
+  const [selectedCity, setSelectedCity] = useState<string | null>(null); // <-- ADICIONE ESTA LINHA
 
   return (
     <FiltersContext.Provider value={{ 
       selectedStore, setSelectedStore, 
-      dateRange, setDateRange 
+      dateRange, setDateRange,
+      selectedCity, setSelectedCity // <-- ADICIONE ESTA LINHA
     }}>
       {children}
     </FiltersContext.Provider>
