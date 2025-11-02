@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
 function getPreviousPeriod(dateRange: [string, string]): [string, string] {
   try {
@@ -187,22 +188,30 @@ function StoreRankingTable({ filters, dateRange, timeDimensions }: { filters: an
   );
 }
 
-function CityFilter({ onCityChange }: { onCityChange: (city: string | null) => void }) {
+interface CityFilterProps {
+  selectedCity: string | null;
+  onCityChange: (city: string | null) => void;
+}
+
+function CityFilter({ selectedCity, onCityChange }: CityFilterProps) {
   const { resultSet, isLoading, error } = useCubeQuery({ dimensions: ['stores.city'] });
   if (isLoading) return <div>A carregar cidades...</div>;
   if (error) return <div>Erro (CityFilter): {error.toString()}</div>;
 
   const cities = (resultSet?.tablePivot() || [])
     .map(row => row['stores.city'])
-    .filter(city => city) // Filtra valores nulos ou vazios
+    .filter(city => city)
     .sort();
   
-  const uniqueCities = [...new Set(cities)]; // Garante cidades únicas
+  const uniqueCities = [...new Set(cities)];
 
   return (
-    <div className="mr-4">
+    <div className="flex items-center space-x-2">
       <Label className="font-medium text-sm">Cidade:</Label>
-      <Select onValueChange={(value) => onCityChange(value || null)}>
+      <Select 
+        value={selectedCity || ""}
+        onValueChange={(value) => onCityChange(value || null)}
+      >
         <SelectTrigger className="w-[180px]">
           <SelectValue placeholder="-- Todas as Cidades --" />
         </SelectTrigger>
@@ -214,6 +223,14 @@ function CityFilter({ onCityChange }: { onCityChange: (city: string | null) => v
           ))}
         </SelectContent>
       </Select>
+      <Button 
+        variant="outline" 
+        size="sm"
+        onClick={() => onCityChange(null)}
+        disabled={!selectedCity}
+      >
+        Limpar
+      </Button>
     </div>
   );
 }
@@ -251,10 +268,10 @@ export default function PaginaLojas() {
   return (
     <CubeProvider cubeApi={cubeApi}>
       <main className="font-sans">
-        <h1 className="text-3xl font-bold p-4">Análise de Lojas</h1>
+        <h1 className="text-3xl font-bold p-4">Análise de Lojas (US13)</h1>
         
         <div className="p-4 bg-gray-50 border-t border-b flex flex-wrap items-center gap-4">
-          <CityFilter onCityChange={setSelectedCity} />
+          <CityFilter selectedCity={selectedCity} onCityChange={setSelectedCity} />
         </div>
 
         <OwnVsFranchiseChart filters={completedFilters} timeDimensions={timeDimensions} />
