@@ -141,6 +141,10 @@ cube(`sales`, {
       sql: `store_id`,
       type: `number`
     },
+        month: {
+      sql: `TO_CHAR(${CUBE}.created_at, 'YYYY-MM')`, // Formato '2025-09'
+      type: `string`
+    },
 
     customer_id: {
       sql: `customer_id`,
@@ -242,18 +246,19 @@ preAggregations: {
         sales.days_since_last_purchase,
         item_product_sales.revenue,
         item_product_sales.times_added,
-        customers.age_range, 
       ],
 
       dimensions: [
         sales.sale_status_desc,
         sales.hourOfDay,
+        customers.age_range, 
         sales.dayOfWeek,
         stores.name,
         stores.is_own,
         stores.city,
         stores.sub_brand_id,
         products.name,
+                sales.month ,
         items.name,
         delivery_addresses.neighborhood,
         customers.customer_name,
