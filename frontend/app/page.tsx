@@ -4,7 +4,8 @@ import cubeApi from '../lib/cube';
 import { CubeProvider, useCubeQuery } from '@cubejs-client/react';
 import React, { useState } from 'react';
 import { 
-  LineChart, Line, PieChart, Pie, Cell, Legend, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer
+  LineChart, Line, PieChart, Pie, Cell, Legend, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  BarChart, Bar
 } from 'recharts';
 import {
   Card,
@@ -31,7 +32,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, AlertTriangle, DollarSign, ShoppingBag } from 'lucide-react';
+import { Loader2, AlertTriangle, DollarSign, ShoppingBag, TrendingDown } from 'lucide-react';
 
 type DateRange = [string, string];
 type DateFilterPreset = 'daily' | 'weekly' | 'monthly' | 'yearly';
@@ -62,6 +63,14 @@ const currencyFormatter = new Intl.NumberFormat('pt-BR', {
 });
 
 const numberFormatter = new Intl.NumberFormat('pt-BR');
+
+const formatPercent = (value: number) => {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'percent',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+};
 
 const dateFormatter = (dateString: string) => {
   try {
@@ -226,7 +235,9 @@ function KpiCards({ filters, timeDimensions }: DashboardComponentProps) {
   const { resultSet, isLoading, error } = useCubeQuery({
     measures: [
       'sales.invoicing',
-      'sales.avg_ticket'
+      'sales.avg_ticket',
+      'sales.total_discount',
+      'sales.discount_percentage'
     ],
     filters: filters,
     timeDimensions: timeDimensions,
@@ -242,28 +253,54 @@ function KpiCards({ filters, timeDimensions }: DashboardComponentProps) {
         <CardTitle>Resultados do Período</CardTitle>
         <CardDescription>Principais métricas financeiras.</CardDescription>
       </CardHeader>
-      <CardContent className="h-full flex flex-col justify-around">
+      <CardContent className="h-full flex flex-col justify-around space-y-4">
+        
         <div className="text-center">
-          <div className="flex items-center justify-center mb-2">
-            <DollarSign className="h-6 w-6 text-green-500 mr-2" />
-            <h3 className="text-md font-medium text-muted-foreground">Faturamento no Período</h3>
+          <div className="flex items-center justify-center mb-1">
+            <DollarSign className="h-5 w-5 text-green-500 mr-2" />
+            <h3 className="text-sm font-medium text-muted-foreground">Faturamento no Período</h3>
           </div>
-          <p className="text-4xl font-bold">
-            {isLoading ? <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" /> : (data ? currencyFormatter.format(Number(data['sales.invoicing']) || 0) : 'N/A')}
+          <p className="text-3xl font-bold">
+            {isLoading ? <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" /> : (data ? currencyFormatter.format(Number(data['sales.invoicing']) || 0) : 'N/A')}
           </p>
         </div>
         
-        <div className="border-t my-4"></div> 
+        <div className="border-t"></div> 
 
         <div className="text-center">
-          <div className="flex items-center justify-center mb-2">
-            <ShoppingBag className="h-6 w-6 text-blue-500 mr-2" />
-            <h3 className="text-md font-medium text-muted-foreground">Ticket Médio no Período</h3>
+          <div className="flex items-center justify-center mb-1">
+            <ShoppingBag className="h-5 w-5 text-blue-500 mr-2" />
+            <h3 className="text-sm font-medium text-muted-foreground">Ticket Médio no Período</h3>
           </div>
-          <p className="text-4xl font-bold">
-            {isLoading ? <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" /> : (data ? currencyFormatter.format(Number(data['sales.avg_ticket']) || 0) : 'N/A')}
+          <p className="text-3xl font-bold">
+            {isLoading ? <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" /> : (data ? currencyFormatter.format(Number(data['sales.avg_ticket']) || 0) : 'N/A')}
           </p>
         </div>
+        
+        <div className="border-t"></div> 
+
+        <div className="text-center">
+          <div className="flex items-center justify-center mb-1">
+            <TrendingDown className="h-5 w-5 text-red-500 mr-2" />
+            <h3 className="text-sm font-medium text-muted-foreground">Total Descontado (US15)</h3>
+          </div>
+          <p className="text-3xl font-bold">
+            {isLoading ? <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" /> : (data ? currencyFormatter.format(Number(data['sales.total_discount']) || 0) : 'N/A')}
+          </p>
+        </div>
+        
+        <div className="border-t"></div> 
+
+        <div className="text-center">
+          <div className="flex items-center justify-center mb-1">
+            <TrendingDown className="h-5 w-5 text-red-500 mr-2" />
+            <h3 className="text-sm font-medium text-muted-foreground">% Desconto (US15)</h3>
+          </div>
+        <p className="text-3xl font-bold">
+          {isLoading ? <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" /> : (data ? formatPercent(Number(data['sales.discount_percentage'] || 0)) : 'N/A')}
+        </p>
+        </div>
+
       </CardContent>
     </Card>
   );
@@ -343,6 +380,89 @@ function TopStores({ filters, timeDimensions }: DashboardComponentProps) {
                 <TableRow key={index}>
                   <TableCell className="font-medium">{String(row['stores.name'])}</TableCell>
                   <TableCell>{numberFormatter.format(Number(row['sales.count']) || 0)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function DiscountReasonChart({ filters, timeDimensions }: DashboardComponentProps) {
+  const { resultSet, isLoading, error } = useCubeQuery({
+    measures: ['sales.total_discount'],
+    dimensions: ['sales.discount_reason'],
+    filters: [
+      ...filters,
+      {
+        member: 'sales.discount_reason',
+        operator: 'set'
+      }
+    ],
+    timeDimensions: timeDimensions,
+    order: { 'sales.total_discount': 'desc' }
+  });
+
+  if (error) return <ErrorComponent componentName="DiscountReasonChart" error={error} />;
+  const data = resultSet?.rawData() || [];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Top Motivos de Desconto (US15)</CardTitle>
+      </CardHeader>
+      <CardContent className="h-80">
+        {isLoading ? <LoadingComponent /> : (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} layout="vertical" margin={{ left: 30 }}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis type="number" tickFormatter={(val) => currencyFormatter.format(val).replace('R$', '')} />
+              <YAxis dataKey="sales.discount_reason" type="category" width={120} interval={0} />
+              <Tooltip formatter={(val: number) => currencyFormatter.format(val)} />
+              <Bar dataKey="sales.total_discount" name="Total Descontado" fill="#f59e0b" />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function TopDiscountedProducts({ filters, timeDimensions }: DashboardComponentProps) {
+  const { resultSet, isLoading, error } = useCubeQuery({
+    measures: ['sales.total_discount'],
+    dimensions: ['products.name'],
+    filters: [
+      ...filters,
+      {
+        member: 'sales.discount_reason',
+        operator: 'set'
+      }
+    ],
+    timeDimensions: timeDimensions,
+    order: { 'sales.total_discount': 'desc' },
+    limit: 5
+  });
+
+  if (error) return <ErrorComponent componentName="TopDiscountedProducts" error={error} />;
+  const data = resultSet?.tablePivot() || [];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Top 5 Produtos Mais Descontados (US15)</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? <LoadingComponent /> : (
+          <Table>
+            <TableHeader><TableRow><TableHead>Produto</TableHead><TableHead>Total Descontado</TableHead></TableRow></TableHeader>
+            <TableBody>
+              {data.map((row, i) => (
+                <TableRow key={i}>
+                  <TableCell>{String(row['products.name'])}</TableCell>
+                  <TableCell>{currencyFormatter.format(Number(row['sales.total_discount']))}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -502,6 +622,18 @@ export default function Home() {
           <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
             <TopProducts filters={completedFilters} timeDimensions={timeDimensions} />
             <TopStores filters={completedFilters} timeDimensions={timeDimensions} />
+          </div>
+
+          <div className="lg:col-span-3">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-6 mb-2">Análise de Descontos (US15)</h2>
+          </div>
+
+          <div className="lg:col-span-1">
+            <DiscountReasonChart filters={completedFilters} timeDimensions={timeDimensions} />
+          </div>
+          
+          <div className="lg:col-span-2">
+            <TopDiscountedProducts filters={completedFilters} timeDimensions={timeDimensions} />
           </div>
 
         </div>
