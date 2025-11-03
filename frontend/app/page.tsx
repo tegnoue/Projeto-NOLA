@@ -2,9 +2,8 @@
     
 import cubeApi from '../lib/cube'; 
 import { CubeProvider, useCubeQuery } from '@cubejs-client/react';
-import React, { useState } from 'react'; // Removido useEffect
+import React, { useState } from 'react';
 import { 
-  // BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, PieChart, Pie, Cell, Legend, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer
 } from 'recharts';
 import {
@@ -32,13 +31,10 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-// Importando ícones para os KPIs e estados de carregamento
 import { Loader2, AlertTriangle, DollarSign, ShoppingBag } from 'lucide-react';
 
 type DateRange = [string, string];
 type DateFilterPreset = 'daily' | 'weekly' | 'monthly' | 'yearly';
-
-// --- Funções Helper (sem alteração na lógica) ---
 
 function getDateRangeFromPreset(preset: DateFilterPreset): [string, string] {
   const end = new Date();
@@ -60,6 +56,22 @@ function getDateRangeFromPreset(preset: DateFilterPreset): [string, string] {
   ];
 }
 
+const currencyFormatter = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL',
+});
+
+const numberFormatter = new Intl.NumberFormat('pt-BR');
+
+const dateFormatter = (dateString: string) => {
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' });
+  } catch (e) {
+    return dateString;
+  }
+};
+
 function normalizeCubeRawData(raw: any[] = []) {
   return raw
     .map((item: any) => {
@@ -72,14 +84,6 @@ function normalizeCubeRawData(raw: any[] = []) {
     .map(d => ({ ...d, value: d.value || 0 }));
 }
 
-// --- Hook de Mock Removido ---
-
-
-// --- Componentes de UI Reutilizáveis ---
-
-/**
- * Componente para exibir um estado de carregamento padronizado.
- */
 function LoadingComponent({ message = "A carregar..." }: { message?: string }) {
   return (
     <div className="flex items-center justify-center h-full min-h-[200px] text-muted-foreground">
@@ -89,9 +93,6 @@ function LoadingComponent({ message = "A carregar..." }: { message?: string }) {
   );
 }
 
-/**
- * Componente para exibir um estado de erro padronizado.
- */
 function ErrorComponent({ componentName, error }: { componentName: string, error: Error }) {
   return (
     <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-destructive-foreground bg-destructive/80 p-4 rounded-lg">
@@ -102,16 +103,12 @@ function ErrorComponent({ componentName, error }: { componentName: string, error
   );
 }
 
-
-// --- Componentes do Dashboard (Estilizados) ---
-
 interface DashboardComponentProps {
   filters: any;
   timeDimensions: any;
 }
 
 function SalesLineChart({ filters, timeDimensions }: DashboardComponentProps) {
-  // Alterado de volta para useCubeQuery
   const { resultSet, isLoading, error } = useCubeQuery({
     measures: ['sales.count'],
     timeDimensions: [
@@ -130,30 +127,6 @@ function SalesLineChart({ filters, timeDimensions }: DashboardComponentProps) {
 
   const data = resultSet?.rawData() || [];
 
-  // --- FUNÇÃO DE FORMATAR A DATA ADICIONADA AQUI ---
-  const formatDateTick = (dateString: string) => {
-    if (typeof dateString !== 'string') return dateString;
-
-    try {
-      // O dado vem como 'YYYY-MM-DD'
-      const parts = dateString.split('-');
-      if (parts.length === 3) {
-        const [year, month, day] = parts;
-        
-        // Retorna 'DD-MM-YYYY'
-        return `${day}-${month}-${year}`;
-        
-        // Para 'MM-YYYY', descomente a linha abaixo:
-        // return `${month}-${year}`;
-      }
-      return dateString; // Retorna o original se não for 'YYYY-MM-DD'
-    } catch (e) {
-      console.error("Erro ao formatar data do tick:", e);
-      return dateString; // Fallback
-    }
-  };
-  // --- FIM DA FUNÇÃO ---
-
   return (
     <Card>
       <CardHeader>
@@ -167,17 +140,17 @@ function SalesLineChart({ filters, timeDimensions }: DashboardComponentProps) {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data}>
               <CartesianGrid strokeDasharray="3 3" />
-              {/* --- EIXO X ATUALIZADO --- */}
-              {/* Adicionada a propriedade tickFormatter */}
               <XAxis 
                 dataKey="sales.created_at.day" 
-                tickFormatter={formatDateTick} 
-                // Opcional: diminui a fonte se as datas ficarem muito juntas
-                // tick={{ fontSize: 12 }} 
+                tickFormatter={dateFormatter} 
               />
-              {/* --- FIM DA ALTERAÇÃO --- */}
-              <YAxis />
-              <Tooltip />
+              <YAxis 
+                tickFormatter={(val) => numberFormatter.format(val)}
+              />
+              <Tooltip 
+                formatter={(val: number) => numberFormatter.format(val)}
+                labelFormatter={(label) => dateFormatter(label)}
+              />
               <Line 
                 type="monotone" 
                 dataKey="sales.count" 
@@ -196,7 +169,6 @@ function SalesLineChart({ filters, timeDimensions }: DashboardComponentProps) {
 const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff7300", "#0088FE", "#00C49F"];
 
 function ChannelDonutChart({ filters, timeDimensions }: DashboardComponentProps) {
-  // Alterado de volta para useCubeQuery
   const { resultSet, isLoading, error } = useCubeQuery({
     measures: ['sales.count'],
     dimensions: ['channels.name'],
@@ -234,13 +206,13 @@ function ChannelDonutChart({ filters, timeDimensions }: DashboardComponentProps)
                 innerRadius={70}
                 outerRadius={110}
                 paddingAngle={4}
-                label={(entry) => `${entry.name}: ${entry.value}`}
+                label={(entry) => `${entry.name}: ${numberFormatter.format(entry.value)}`}
               >
                 {data.map((_, i) => (
                   <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(val: any) => Number(val).toLocaleString()} />
+              <Tooltip formatter={(val: number) => numberFormatter.format(val)} />
               <Legend />
             </PieChart>
           </ResponsiveContainer>
@@ -250,10 +222,7 @@ function ChannelDonutChart({ filters, timeDimensions }: DashboardComponentProps)
   );
 }
 
-
-
 function KpiCards({ filters, timeDimensions }: DashboardComponentProps) {
-  // Alterado de volta para useCubeQuery
   const { resultSet, isLoading, error } = useCubeQuery({
     measures: [
       'sales.invoicing',
@@ -280,7 +249,7 @@ function KpiCards({ filters, timeDimensions }: DashboardComponentProps) {
             <h3 className="text-md font-medium text-muted-foreground">Faturamento no Período</h3>
           </div>
           <p className="text-4xl font-bold">
-            {isLoading ? <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" /> : (data ? data['sales.invoicing'] : 'N/A')}
+            {isLoading ? <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" /> : (data ? currencyFormatter.format(data['sales.invoicing']) : 'N/A')}
           </p>
         </div>
         
@@ -292,7 +261,7 @@ function KpiCards({ filters, timeDimensions }: DashboardComponentProps) {
             <h3 className="text-md font-medium text-muted-foreground">Ticket Médio no Período</h3>
           </div>
           <p className="text-4xl font-bold">
-            {isLoading ? <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" /> : (data ? data['sales.avg_ticket'] : 'N/A')}
+            {isLoading ? <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" /> : (data ? currencyFormatter.format(data['sales.avg_ticket']) : 'N/A')}
           </p>
         </div>
       </CardContent>
@@ -301,7 +270,6 @@ function KpiCards({ filters, timeDimensions }: DashboardComponentProps) {
 }
 
 function TopProducts({ filters, timeDimensions }: DashboardComponentProps) {
-  // Alterado de volta para useCubeQuery
   const { resultSet, isLoading, error } = useCubeQuery({
     measures: ['sales.count'],
     dimensions: ['products.name'],
@@ -332,7 +300,7 @@ function TopProducts({ filters, timeDimensions }: DashboardComponentProps) {
               {products.map((row, index) => (
                 <TableRow key={index}>
                   <TableCell className="font-medium">{String(row['products.name'])}</TableCell>
-                  <TableCell>{String(row['sales.count'])}</TableCell>
+                  <TableCell>{numberFormatter.format(row['sales.count'])}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -344,7 +312,6 @@ function TopProducts({ filters, timeDimensions }: DashboardComponentProps) {
 }
 
 function TopStores({ filters, timeDimensions }: DashboardComponentProps) {
-  // Alterado de volta para useCubeQuery
   const { resultSet, isLoading, error } = useCubeQuery({
     measures: ['sales.count'],
     dimensions: ['stores.name'],
@@ -375,7 +342,7 @@ function TopStores({ filters, timeDimensions }: DashboardComponentProps) {
               {stores.map((row, index) => (
                 <TableRow key={index}>
                   <TableCell className="font-medium">{String(row['stores.name'])}</TableCell>
-                  <TableCell>{String(row['sales.count'])}</TableCell>
+                  <TableCell>{numberFormatter.format(row['sales.count'])}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -386,10 +353,7 @@ function TopStores({ filters, timeDimensions }: DashboardComponentProps) {
   );
 }
 
-// --- Componentes de Filtro (sem alteração na lógica) ---
-
 function StoreFilter({ onStoreChange }: { onStoreChange: (store: string | null) => void }) {
-  // Alterado de volta para useCubeQuery
   const { resultSet, isLoading, error } = useCubeQuery({ dimensions: ['stores.name'] });
   if (error) return <div>Erro (StoreFilter): {error.toString()}</div>;
 
@@ -420,7 +384,6 @@ function StoreFilter({ onStoreChange }: { onStoreChange: (store: string | null) 
 }
 
 function CityFilter({ onCityChange }: { onCityChange: (city: string | null) => void }) {
-  // Alterado de volta para useCubeQuery
   const { resultSet, isLoading, error } = useCubeQuery({ dimensions: ['stores.city'] });
   if (error) return <div>Erro (CityFilter): {error.toString()}</div>;
 
@@ -475,8 +438,6 @@ function DateFilter({ dateRange, onDateChange }: { dateRange: DateRange, onDateC
   );
 }
 
-// --- Componente Principal (Layout Atualizado) ---
-
 export default function Home() {
   
   const [selectedStore, setSelectedStore] = useState<string | null>(null);
@@ -509,14 +470,11 @@ export default function Home() {
   ];
   
   return (
-    // Adicionado o <CubeProvider> de volta
     <CubeProvider cubeApi={cubeApi}>
-      {/* Container principal com fundo e espaçamento */}
       <main className="font-sans p-4 md:p-8 space-y-6 bg-gray-100 dark:bg-zinc-900 min-h-screen">
         
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Dashboard de Vendas</h1>
         
-        {/* Barra de Filtros em um Card */}
         <Card>
           <CardContent className="p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="flex flex-col sm:flex-row gap-4">
@@ -527,10 +485,8 @@ export default function Home() {
           </CardContent>
         </Card>
         
-        {/* Grid principal do Dashboard */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
-          {/* Linha 1: Gráfico de Linha (2/3) e KPIs (1/3) */}
           <div className="lg:col-span-2">
             <SalesLineChart filters={completedFilters} timeDimensions={timeDimensions} />
           </div>
@@ -539,7 +495,6 @@ export default function Home() {
             <KpiCards filters={completedFilters} timeDimensions={timeDimensions} />
           </div>
 
-          {/* Linha 2: Gráfico de Donut (1/3) e Tabelas (2/3) */}
           <div className="lg:col-span-1">
             <ChannelDonutChart filters={completedFilters} timeDimensions={timeDimensions} />
           </div>
@@ -552,7 +507,7 @@ export default function Home() {
         </div>
 
       </main>
-    </CubeProvider> // Adicionado o </CubeProvider> de volta
+    </CubeProvider>
   );
 }
 
