@@ -2,7 +2,7 @@
     
 import cubeApi from '../../../lib/cube';
 import { CubeProvider, useCubeQuery } from '@cubejs-client/react';
-import React, { useMemo } from 'react'; 
+import React, { useMemo, useState } from 'react'; 
 import { useFilters } from '@/lib/filters-context';
 import Link from 'next/link';
 import {
@@ -20,6 +20,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+
+type SortConfig = {
+  member: string;
+  order: 'asc' | 'desc';
+};
 
 function getPreviousPeriod(dateRange: [string, string]): [string, string] {
   try {
@@ -42,7 +47,19 @@ function getPreviousPeriod(dateRange: [string, string]): [string, string] {
 
 function StoreRankingTable({ filters, dateRange, timeDimensions }: { filters: any[]; dateRange: [string, string]; timeDimensions: any[] }) {
 
+  const [sortConfig, setSortConfig] = useState<SortConfig>({
+    member: 'sales.invoicing',
+    order: 'desc'
+  });
+
   const previousDateRange = getPreviousPeriod(dateRange);
+
+  const serverSortOrder = useMemo(() => {
+    if (sortConfig.member === 'growth') return undefined;
+    return {
+      [sortConfig.member]: sortConfig.order
+    };
+  }, [sortConfig]);
 
   const { resultSet: currentData, isLoading: isLoadingCurrent, error: errorCurrent } = useCubeQuery({
     measures: [
@@ -54,9 +71,7 @@ function StoreRankingTable({ filters, dateRange, timeDimensions }: { filters: an
     dimensions: ['stores.name'],
     filters: filters,
     timeDimensions: timeDimensions,
-    order: {
-      'sales.invoicing': 'desc'
-    }
+    order: serverSortOrder
   });
   
   const { resultSet: previousData, isLoading: isLoadingPrevious, error: errorPrevious } = useCubeQuery({
@@ -83,7 +98,7 @@ function StoreRankingTable({ filters, dateRange, timeDimensions }: { filters: an
       previousPivot.map(row => [row['stores.name'], row['sales.invoicing']])
     );
 
-    return currentPivot.map(currentRow => {
+    const dataWithGrowth = currentPivot.map(currentRow => {
       const storeName = String((currentRow as any)['stores.name']);
       const currentInvoicing = parseFloat(String((currentRow as any)['sales.invoicing']));
       const previousInvoicing = parseFloat(String(previousMap.get(storeName))) || 0;
@@ -97,15 +112,41 @@ function StoreRankingTable({ filters, dateRange, timeDimensions }: { filters: an
       
       return {
         ...(currentRow as any),
-        growth: growth.toFixed(1) + '%',
+        growth: growth,
       };
     });
-  }, [currentData, previousData]) as any[];
+
+    if (sortConfig.member === 'growth') {
+      dataWithGrowth.sort((a, b) => {
+        const valA = a.growth;
+        const valB = b.growth;
+        return sortConfig.order === 'asc' ? valA - valB : valB - valA;
+      });
+    }
+    
+    return dataWithGrowth;
+
+  }, [currentData, previousData, sortConfig]);
 
   const isLoading = isLoadingCurrent || isLoadingPrevious;
 
   if (errorCurrent) return <div>Erro (CurrentData): {errorCurrent.toString()}</div>;
   if (errorPrevious) return <div>Erro (PreviousData): {errorPrevious.toString()}</div>;
+
+  const handleSort = (member: string) => {
+    setSortConfig(currentConfig => {
+      const isDesc = currentConfig.member === member && currentConfig.order === 'desc';
+      return {
+        member: member,
+        order: isDesc ? 'asc' : 'desc'
+      };
+    });
+  };
+
+  const getSortIndicator = (member: string) => {
+    if (sortConfig.member !== member) return null;
+    return sortConfig.order === 'desc' ? ' 🔽' : ' 🔼';
+  };
 
   return (
     <Card className="m-4">
@@ -119,12 +160,24 @@ function StoreRankingTable({ filters, dateRange, timeDimensions }: { filters: an
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Loja</TableHead>
-                <TableHead>Faturamento</TableHead>
-                <TableHead>Crescimento % (vs. Período Ant.)</TableHead>
-                <TableHead>Ticket Médio</TableHead>
-                <TableHead>Taxa de Cancelamento</TableHead>
-                <TableHead>Tempo de Entrega (min)</TableHead>
+                <TableHead onClick={() => handleSort('stores.name')} className="cursor-pointer">
+                  Loja {getSortIndicator('stores.name')}
+                </TableHead>
+                <TableHead onClick={() => handleSort('sales.invoicing')} className="cursor-pointer">
+                  Faturamento {getSortIndicator('sales.invoicing')}
+                </TableHead>
+                <TableHead onClick={() => handleSort('growth')} className="cursor-pointer">
+                  Crescimento % {getSortIndicator('growth')}
+                </TableHead>
+                <TableHead onClick={() => handleSort('sales.avg_ticket')} className="cursor-pointer">
+                  Ticket Médio {getSortIndicator('sales.avg_ticket')}
+                </TableHead>
+                <TableHead onClick={() => handleSort('sales.cancellation_rate')} className="cursor-pointer">
+                  Taxa de Cancelamento {getSortIndicator('sales.cancellation_rate')}
+                </TableHead>
+                <TableHead onClick={() => handleSort('sales.avg_delivery_time')} className="cursor-pointer">
+                  Tempo de Entrega (min) {getSortIndicator('sales.avg_delivery_time')}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -132,7 +185,7 @@ function StoreRankingTable({ filters, dateRange, timeDimensions }: { filters: an
                 <TableRow key={index}>
                   <TableCell className="font-medium">{String(row['stores.name'])}</TableCell>
                   <TableCell>{String(row['sales.invoicing'])}</TableCell>
-                  <TableCell>{String(row.growth)}</TableCell>
+                  <TableCell>{row.growth.toFixed(1)}%</TableCell>
                   <TableCell>{String(row['sales.avg_ticket'])}</TableCell>
                   <TableCell>{String(row['sales.cancellation_rate'])}</TableCell>
                   <TableCell>{parseFloat(String(row['sales.avg_delivery_time'])).toFixed(1)}</TableCell>
