@@ -80,6 +80,20 @@ cube(`customers`, {
     birth_date: {
       sql: `birth_date`,
       type: `time`
+    },
+    age_range: {
+      type: `string`,
+      sql: `
+        CASE
+          WHEN DATE_PART('year', AGE(NOW(), birth_date)) <= 14 THEN '0-14'
+          WHEN DATE_PART('year', AGE(NOW(), birth_date)) <= 18 THEN '14-18'
+          WHEN DATE_PART('year', AGE(NOW(), birth_date)) <= 30 THEN '18-30'
+          WHEN DATE_PART('year', AGE(NOW(), birth_date)) <= 49 THEN '30-49'
+          WHEN DATE_PART('year', AGE(NOW(), birth_date)) >= 50 THEN '50+'
+          ELSE 'N/A'
+        END
+      `,
+      title: "Faixa Etária"
     }
   },
   
