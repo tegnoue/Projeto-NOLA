@@ -227,6 +227,18 @@ cube(`sales`, {
       type: `number`,
       sql: `DATE_PART('day', NOW() - MAX(${CUBE}.created_at))`,
       title: "Dias desde a Última Compra"
+    },
+
+    total_discount: {
+      type: `sum`,
+      sql: `total_discount`,
+      format: `currency`
+    },
+
+    discount_percentage:{
+      type: `number`,
+      sql: `(${total_discount}::float / ${invoicing}::float + ${total_discount}::float)`,
+      format: `percent`
     }
   },
   
@@ -241,6 +253,8 @@ preAggregations: {
         sales.avg_delivery_time,
         sales.count_cancelled,
         sales.cancellation_rate,
+        sales.total_discount,
+        sales.discount_percentage,
         sales.frequency,
         sales.ltv,
         sales.days_since_last_purchase,
@@ -251,6 +265,7 @@ preAggregations: {
       dimensions: [
         sales.sale_status_desc,
         sales.hourOfDay,
+        sales.discount_reason,
         customers.age_range, 
         sales.dayOfWeek,
         stores.name,
