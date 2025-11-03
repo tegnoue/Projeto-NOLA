@@ -13,6 +13,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter, 
 } from "@/components/ui/card";
 import {
   Table,
@@ -31,7 +32,8 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-// Ícones atualizados
+import { Button } from "@/components/ui/button"; 
+import { Input } from "@/components/ui/input"; 
 import { 
   Loader2, 
   AlertTriangle, 
@@ -39,8 +41,34 @@ import {
   MinusCircle, 
   ArrowUp, 
   ArrowDown, 
-  ArrowDownUp 
+  ArrowDownUp,
+  ChevronDown, 
+  ChevronUp, 
 } from 'lucide-react';
+
+type DateRange = [string, string];
+type DateFilterPreset = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
+function getDateRangeFromPreset(preset: DateFilterPreset): [string, string] {
+  const end = new Date();
+  const start = new Date();
+  
+  if (preset === 'daily') {
+    start.setDate(end.getDate() - 1);
+  } else if (preset === 'weekly') {
+    start.setDate(end.getDate() - 7);
+  } else if (preset === 'monthly') {
+    start.setMonth(end.getMonth() - 1);
+  } else if (preset === 'yearly') {
+    start.setFullYear(end.getFullYear() - 1);
+  }
+  
+  return [
+    start.toISOString().split('T')[0],
+    end.toISOString().split('T')[0]
+  ];
+}
+
 
 const currencyFormatter = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
@@ -74,16 +102,18 @@ interface ProductPageProps {
   timeDimensions: any;
 }
 
-// --- Componentes do Dashboard (Melhorados) ---
-
 function ProductRankingTable({ filters, timeDimensions }: ProductPageProps) {
   const [sortConfig, setSortConfig] = useState({ member: 'sales.invoicing', order: 'desc' as 'asc' | 'desc' });
+  
+
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const { resultSet, isLoading, error } = useCubeQuery({
     measures: ['sales.invoicing', 'sales.count'],
     dimensions: ['products.grouped_name'],
     filters: filters,
     timeDimensions: timeDimensions,
+    limit: isExpanded ? undefined : 5, 
     order: {
       [sortConfig.member]: sortConfig.order
     }
@@ -99,7 +129,6 @@ function ProductRankingTable({ filters, timeDimensions }: ProductPageProps) {
     }));
   };
   
-  // Alteração: Usando ícones para ordenação
   const getSortIndicator = (member: string) => {
     if (sortConfig.member !== member) {
       return <ArrowDownUp className="ml-2 h-4 w-4 text-muted-foreground" />;
@@ -109,12 +138,16 @@ function ProductRankingTable({ filters, timeDimensions }: ProductPageProps) {
       : <ArrowUp className="ml-2 h-4 w-4" />;
   };
 
-  // Alteração: Adicionado className para o grid layout
   return (
     <Card className="lg:col-span-2">
       <CardHeader>
         <CardTitle>Ranking de Produtos</CardTitle>
-        <CardDescription>Ranking de todos os produtos por faturamento ou quantidade.</CardDescription>
+        <CardDescription>
+          {isExpanded 
+            ? "Ranking de todos os produtos por faturamento ou quantidade."
+            : "Ranking dos Top 5 produtos por faturamento ou quantidade."
+          }
+        </CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -124,7 +157,6 @@ function ProductRankingTable({ filters, timeDimensions }: ProductPageProps) {
             <TableHeader>
               <TableRow>
                 <TableHead>Produto</TableHead>
-                {/* Alteração: layout flex para o ícone */}
                 <TableHead onClick={() => handleSort('sales.invoicing')} className="cursor-pointer">
                   <div className="flex items-center">
                     Faturamento {getSortIndicator('sales.invoicing')}
@@ -149,10 +181,29 @@ function ProductRankingTable({ filters, timeDimensions }: ProductPageProps) {
           </Table>
         )}
       </CardContent>
+      {/* Footer adicionado com o botão de expandir */}
+      <CardFooter className="flex justify-center">
+        <Button 
+          variant="ghost" 
+          onClick={() => setIsExpanded(!isExpanded)}
+          disabled={isLoading}
+        >
+          {isExpanded ? (
+            <>
+              <ChevronUp className="mr-2 h-4 w-4" />
+              Ver menos
+            </>
+          ) : (
+            <>
+              <ChevronDown className="mr-2 h-4 w-4" />
+              Ver mais
+            </>
+          )}
+        </Button>
+      </CardFooter>
     </Card>
   );
 }
-
 function TopCustomizations({ filters, timeDimensions }: ProductPageProps) {
   const { resultSet: addedSet, isLoading: isLoadingAdded } = useCubeQuery({
     measures: ['item_product_sales.count_added'],
@@ -185,7 +236,6 @@ function TopCustomizations({ filters, timeDimensions }: ProductPageProps) {
       <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            {/* Alteração: Ícone adicionado */}
             <CardTitle className="flex items-center text-green-600">
               <PlusCircle className="mr-2 h-5 w-5" />
               Top 5 Itens Mais Adicionados
@@ -209,7 +259,6 @@ function TopCustomizations({ filters, timeDimensions }: ProductPageProps) {
         </Card>
         <Card>
           <CardHeader>
-            {/* Alteração: Ícone adicionado */}
             <CardTitle className="flex items-center text-red-600">
               <MinusCircle className="mr-2 h-5 w-5" />
               Top 5 Itens Mais Removidos
@@ -257,7 +306,7 @@ function SeasonalProductChart({ filters, timeDimensions }: ProductPageProps) {
       }] : [])
     ],
     order: { 'sales.month': 'asc' }
-  }); // Alteração: Removido o 'skip: !selectedProduct'
+  }); 
 
   if (error) return <ErrorComponent componentName="SeasonalProductChart" error={error} />;
   
@@ -265,15 +314,12 @@ function SeasonalProductChart({ filters, timeDimensions }: ProductPageProps) {
   const data = resultSet?.rawData() || [];
 
   return (
-    // Alteração: Adicionado className para o grid layout
     <Card className="lg:col-span-1 h-full">
       <CardHeader>
-        {/* Alteração: Títulos atualizados */}
         <CardTitle>Análise Sazonal (Anomalia #4)</CardTitle>
         <CardDescription>Faturamento mensal total. Selecione um produto para filtrar.</CardDescription>
         <Select onValueChange={(val) => setSelectedProduct(val === 'all' ? null : val)} value={selectedProduct || 'all'}>
-          <SelectTrigger className="w-[300px] mt-2">
-            {/* Alteração: Placeholder atualizado */}
+          <SelectTrigger className="w-full lg:w-[300px] mt-2">
             <SelectValue placeholder="Filtrar por produto..." />
           </SelectTrigger>
           <SelectContent>
@@ -291,7 +337,6 @@ function SeasonalProductChart({ filters, timeDimensions }: ProductPageProps) {
         </Select>
       </CardHeader>
       <CardContent className="h-80">
-        {/* Alteração: removido o check '!selectedProduct' */}
         {isLoading ? <LoadingComponent /> : (
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data}>
@@ -307,6 +352,8 @@ function SeasonalProductChart({ filters, timeDimensions }: ProductPageProps) {
     </Card>
   );
 }
+
+// --- COMPONENTES DE FILTRO ---
 
 function CategoryFilter({ onCategoryChange }: { onCategoryChange: (category: string | null) => void }) {
   const { resultSet, isLoading, error } = useCubeQuery({ dimensions: ['categories.name'] });
@@ -336,19 +383,77 @@ function CategoryFilter({ onCategoryChange }: { onCategoryChange: (category: str
   );
 }
 
+function ChannelFilter({ onChannelChange }: { onChannelChange: (channel: string | null) => void }) {
+  const { resultSet, isLoading, error } = useCubeQuery({ dimensions: ['channels.name'] });
+  if (error) return <div>Erro (ChannelFilter): {error.toString()}</div>;
+  
+  const channels = (resultSet?.tablePivot() || [])
+    .map(row => row['channels.name'])
+    .filter(c => c)
+    .sort();
+  const uniqueChannels = [...new Set(channels)];
+
+  return (
+    <div className="flex-1 min-w-[180px]">
+      <Label className="font-medium text-sm">Canal:</Label>
+      {isLoading ? <LoadingComponent message="Canais..." /> : (
+        <Select onValueChange={(value) => onChannelChange(value === 'all' ? null : value)}>
+          <SelectTrigger>
+            <SelectValue placeholder="-- Todos os Canais --" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">-- Todos os Canais --</SelectItem>
+            {uniqueChannels.map((cat, index) => (
+              <SelectItem key={index} value={String(cat)}>
+                {String(cat)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+    </div>
+  );
+}
+
+function DateFilter({ dateRange, onDateChange }: { dateRange: DateRange, onDateChange: (range: DateRange) => void }) {
+  const setPreset = (preset: DateFilterPreset) => {
+    onDateChange(getDateRangeFromPreset(preset));
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-4 pt-4 lg:pt-0">
+      <div className="flex items-center space-x-2">
+        <Label className="font-medium text-sm shrink-0">Período Rápido:</Label>
+        <Button variant="outline" size="sm" onClick={() => setPreset('daily')}>Diário</Button>
+        <Button variant="outline" size="sm" onClick={() => setPreset('weekly')}>Semanal</Button>
+        <Button variant="outline" size="sm" onClick={() => setPreset('monthly')}>Mensal</Button>
+        <Button variant="outline" size="sm" onClick={() => setPreset('yearly')}>Anual</Button>
+      </div>
+      <div className="flex flex-wrap items-center space-x-2">
+        <Label className="font-medium text-sm shrink-0">Período Personalizado:</Label>
+        <Input type="date" value={dateRange[0]} onChange={(e) => onDateChange([e.target.value, dateRange[1]])} className="w-auto" />
+        <span className="mx-2 text-muted-foreground">Até:</span>
+        <Input type="date" value={dateRange[1]} onChange={(e) => onDateChange([dateRange[0], e.target.value])} className="w-auto" />
+      </div>
+    </div>
+  );
+}
+
 export default function PaginaProdutos() {
   
-  const { selectedStore, dateRange } = useFilters();
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [deliveryOnly, setDeliveryOnly] = useState<boolean>(false);
+  const { selectedStore } = useFilters(); 
   
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
+  const [deliveryOnly, setDeliveryOnly] = useState<boolean>(false);
+  const [dateRange, setDateRange] = useState<DateRange>(getDateRangeFromPreset('monthly')); 
+
   const timeDimensions: any[] = [
     {
       dimension: 'sales.created_at',
       dateRange: dateRange, 
     },
   ];
-
   const baseFilters: any[] = [
     {
       member: 'sales.sale_status_desc',
@@ -365,6 +470,11 @@ export default function PaginaProdutos() {
       operator: 'equals' as const,
       values: [selectedCategory]
     }] : []),
+    ...(selectedChannel ? [{ 
+      member: 'channels.name',
+      operator: 'equals' as const,
+      values: [selectedChannel]
+    }] : []),
     ...(deliveryOnly ? [{ 
       member: 'channels.type',
       operator: 'equals' as const,
@@ -377,7 +487,6 @@ export default function PaginaProdutos() {
       <main className="font-sans p-4 md:p-8 space-y-6 bg-gray-100 dark:bg-zinc-900 min-h-screen">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Análise de Produtos (US14)</h1>
         
-        {/* --- Card de Filtros --- */}
         <Card>
           <CardHeader>
             <CardTitle>Filtros</CardTitle>
@@ -385,6 +494,7 @@ export default function PaginaProdutos() {
           <CardContent className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="flex flex-col sm:flex-row gap-4">
               <CategoryFilter onCategoryChange={setSelectedCategory} />
+              <ChannelFilter onChannelChange={setSelectedChannel} />
             </div>
             <div className="flex items-center space-x-2">
               <Switch 
@@ -392,21 +502,18 @@ export default function PaginaProdutos() {
                 checked={deliveryOnly}
                 onCheckedChange={setDeliveryOnly}
               />
-              <Label htmlFor="delivery-only">Mostrar apenas Delivery (Crit. Sucesso #2)</Label>
+              <Label htmlFor="delivery-only">Mostrar apenas Delivery</Label>
             </div>
+            
+            <DateFilter dateRange={dateRange} onDateChange={setDateRange} />
           </CardContent>
         </Card>
         
-        {/* --- Alteração: Novo Grid Layout --- */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Ranking de Produtos (2/3) */}
           <ProductRankingTable filters={baseFilters} timeDimensions={timeDimensions} />
-          
-          {/* Análise Sazonal (1/3) */}
           <SeasonalProductChart filters={baseFilters} timeDimensions={timeDimensions} />
         </div>
         
-        {/* --- Análise de Customizações (Full-width abaixo) --- */}
         <TopCustomizations filters={baseFilters} timeDimensions={timeDimensions} />
 
       </main>
