@@ -2,9 +2,10 @@
     
 import cubeApi from '../../lib/cube';
 import { CubeProvider, useCubeQuery } from '@cubejs-client/react';
-import React, { useMemo, useState } from 'react'; 
+import React, { useState, useMemo } from 'react'; 
 import { 
-  PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer 
+  PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid
 } from 'recharts';
 import {
   Card,
@@ -31,7 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Loader2, AlertTriangle, Users } from 'lucide-react';
+import { Loader2, AlertTriangle, Users, UserPlus, UserCheck } from 'lucide-react';
 
 type DateRange = [string, string];
 type DateFilterPreset = 'daily' | 'weekly' | 'monthly' | 'yearly';
@@ -58,6 +59,13 @@ function getDateRangeFromPreset(preset: DateFilterPreset): [string, string] {
 
 const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff7300", "#0088FE", "#00C49F"];
 
+const currencyFormatter = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL',
+});
+
+const numberFormatter = new Intl.NumberFormat('pt-BR');
+
 function LoadingComponent({ message = "A carregar..." }: { message?: string }) {
   return (
     <div className="flex items-center justify-center h-full min-h-[200px] text-muted-foreground">
@@ -80,10 +88,12 @@ function ErrorComponent({ componentName, error }: { componentName: string, error
 interface KpiProps {
   filters: any; 
   timeDimensions: any;
+  dateRange?: DateRange;
 }
 
-function KpisClientes({ filters, timeDimensions }: KpiProps) {
-  const { resultSet, isLoading, error } = useCubeQuery({
+function KpisClientes({ filters, timeDimensions, dateRange = getDateRangeFromPreset('monthly') }: KpiProps) {
+  
+  const { resultSet: totalSet, isLoading: isLoadingTotal, error: errorTotal } = useCubeQuery({
     measures: [
       'sales.total_clientes',
     ],
@@ -91,8 +101,44 @@ function KpisClientes({ filters, timeDimensions }: KpiProps) {
     timeDimensions: timeDimensions,
   });
 
-  if (error) return <Card className="h-full"><CardContent className="p-0"><ErrorComponent componentName="KpisClientes" error={error} /></CardContent></Card>;
-  const data = resultSet?.tablePivot()[0];
+  const { resultSet: newSet, isLoading: isLoadingNew, error: errorNew } = useCubeQuery({
+    measures: [
+      'sales.total_clientes',
+    ],
+    filters: filters,
+    timeDimensions: [
+      ...timeDimensions,
+      {
+        dimension: 'customers.created_at',
+        dateRange: dateRange 
+      }
+    ],
+  });
+  
+  const { resultSet: returningSet, isLoading: isLoadingReturning, error: errorReturning } = useCubeQuery({
+    measures: [
+      'sales.total_clientes',
+    ],
+    filters: filters,
+    timeDimensions: [
+      ...timeDimensions,
+      {
+        dimension: 'customers.created_at',
+        dateRange: [null, dateRange[0]]
+      }
+    ],
+  });
+
+
+  if (errorTotal) return <Card className="h-full"><CardContent className="p-0"><ErrorComponent componentName="KpisClientes (Total)" error={errorTotal} /></CardContent></Card>;
+  if (errorNew) return <Card className="h-full"><CardContent className="p-0"><ErrorComponent componentName="KpisClientes (New)" error={errorNew} /></CardContent></Card>;
+ // if (errorReturning) return <Card className="h-full"><CardContent className="p-0"><ErrorComponent componentName="KpisClientes (Returning)" error={errorReturning} /></CardContent></Card>;
+
+  const totalData = totalSet?.tablePivot()[0];
+  const newData = newSet?.tablePivot()[0];
+  const returningData = returningSet?.tablePivot()[0];
+  
+  const isLoading = isLoadingTotal || isLoadingNew || isLoadingReturning;
 
   return (
     <div className="grid gap-4 md:grid-cols-3 p-4">
@@ -103,7 +149,7 @@ function KpisClientes({ filters, timeDimensions }: KpiProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            {isLoading ? '...' : (data ? data['sales.total_clientes'] : 'N/A')}
+            {isLoading ? '...' : (totalData ? (Number.isFinite(Number(totalData['sales.total_clientes'])) ? numberFormatter.format(Number(totalData['sales.total_clientes'])) : 'N/A') : 'N/A')}
           </div>
         </CardContent>
       </Card>
@@ -111,25 +157,25 @@ function KpisClientes({ filters, timeDimensions }: KpiProps) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Clientes Novos (Período)</CardTitle>
+           <UserPlus className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">
-            {isLoading ? '...' : ('N/A')}
-          </div>
-          <p className="text-xs text-muted-foreground">[Não implementado]</p>
-        </CardContent>
+            <div className="text-2xl font-bold">
+              {isLoading ? '...' : (newData ? numberFormatter.format(Number(newData['sales.total_clientes']) || 0) : '0')}
+            </div>
+          </CardContent>
       </Card>
       
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Clientes Recorrentes (Período)</CardTitle>
+          <UserCheck className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">
-            {isLoading ? '...' : ('N/A')}
-          </div>
-           <p className="text-xs text-muted-foreground">[Não implementado]</p>
-        </CardContent>
+            <div className="text-2xl font-bold">
+              {isLoading ? '...' : (returningData ? numberFormatter.format(Number(returningData['sales.total_clientes']) || 0) : '0')}
+            </div>
+          </CardContent>
       </Card>
     </div>
   );
@@ -176,13 +222,13 @@ function AgeRangeDonutChart({ filters, timeDimensions }: KpiProps) {
                 innerRadius={70}
                 outerRadius={110}
                 paddingAngle={4}
-                label={(entry) => `${entry.name}: ${entry.value}`}
+                label={(entry: any) => `${entry.name}: ${numberFormatter.format(Number(entry.value) || 0)}`}
               >
                 {data.map((_, i) => (
                   <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(val: number) => val} />
+              <Tooltip formatter={(val: number) => numberFormatter.format(val)} />
               <Legend />
             </PieChart>
           </ResponsiveContainer>
@@ -284,12 +330,75 @@ function RelatorioClientes({ filters, timeDimensions }: KpiProps) {
                 <TableRow key={index}>
                   <TableCell className="font-medium">{String(cliente['customers.customer_name'])}</TableCell>
                   <TableCell>{String(cliente['customers.phone_number'])}</TableCell>
-                  <TableCell>{String(cliente['sales.frequency'])}</TableCell>
-                  <TableCell>{String(cliente['sales.days_since_last_purchase'])}</TableCell>
+                  <TableCell>{numberFormatter.format(Number(cliente['sales.frequency']) || 0)}</TableCell>
+                  <TableCell>{numberFormatter.format(Number(cliente['sales.days_since_last_purchase']) || 0)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function TopStoresNewCustomers({ filters, timeDimensions, dateRange }: KpiProps) {
+  const { resultSet, isLoading, error } = useCubeQuery({
+    measures: [
+      'sales.total_clientes',
+    ],
+    dimensions: [
+      'stores.name'
+    ],
+    timeDimensions: [
+      ...timeDimensions,
+      {
+        dimension: 'customers.created_at',
+        dateRange: dateRange 
+      }
+    ],
+    filters: filters,
+    order: {
+      'sales.total_clientes': 'desc'
+    },
+    limit: 5
+  });
+
+  if (error) return <Card><CardContent className="p-0"><ErrorComponent componentName="TopStoresNewCustomers" error={error} /></CardContent></Card>;
+
+  const data = resultSet?.tablePivot() || [];
+
+  return (
+    <Card className="m-4">
+      <CardHeader>
+        <CardTitle>Top 5 Lojas por Clientes Novos</CardTitle>
+        <CardDescription>
+          Quais lojas mais adquiriram clientes novos no período selecionado.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="h-96">
+        {isLoading ? (
+          <LoadingComponent message="A carregar ranking de lojas..." />
+        ) : data.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            Nenhum dado disponível.
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart layout="vertical" data={data} margin={{ left: 20, right: 30 }}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis type="number" tickFormatter={(val) => numberFormatter.format(val)} />
+              <YAxis 
+                dataKey="stores.name" 
+                type="category"
+                width={150}
+                interval={0}
+              />
+              <Tooltip formatter={(val: number) => numberFormatter.format(val)} />
+              <Legend />
+              <Bar dataKey="sales.total_clientes" name="Clientes Novos" fill="#8884d8" />
+            </BarChart>
+          </ResponsiveContainer>
         )}
       </CardContent>
     </Card>
@@ -334,7 +443,6 @@ export default function PaginaClientes() {
   return (
     <CubeProvider cubeApi={cubeApi}>
       <main className="font-sans p-4 md:p-8 space-y-6 bg-gray-100 dark:bg-zinc-900 min-h-screen">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Análise de Clientes (US11)</h1>
         
         <Card>
           <CardContent className="p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
@@ -346,12 +454,22 @@ export default function PaginaClientes() {
           </CardContent>
         </Card>
         
-        <KpisClientes filters={completedFilters} timeDimensions={timeDimensions} />
+        <KpisClientes 
+          filters={completedFilters} 
+          timeDimensions={timeDimensions}
+          dateRange={dateRange}
+        />
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <AgeRangeDonutChart filters={completedFilters} timeDimensions={timeDimensions} />
           <RelatorioClientes filters={completedFilters} timeDimensions={timeDimensions} />
         </div>
+
+        <TopStoresNewCustomers 
+          filters={completedFilters} 
+          timeDimensions={timeDimensions}
+          dateRange={dateRange}
+        />
 
       </main>
     </CubeProvider>
@@ -452,3 +570,4 @@ function DateFilter({ dateRange, onDateChange }: DateFilterProps) {
     </div>
   );
 }
+
