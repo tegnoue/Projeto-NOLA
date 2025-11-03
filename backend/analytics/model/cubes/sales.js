@@ -241,7 +241,8 @@ preAggregations: {
         sales.ltv,
         sales.days_since_last_purchase,
         item_product_sales.revenue,
-        item_product_sales.times_added 
+        item_product_sales.times_added,
+        customers.age_range, 
       ],
 
       dimensions: [
