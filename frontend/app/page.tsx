@@ -206,7 +206,7 @@ function ChannelDonutChart({ filters, timeDimensions }: DashboardComponentProps)
                 innerRadius={70}
                 outerRadius={110}
                 paddingAngle={4}
-                label={(entry) => `${entry.name}: ${numberFormatter.format(entry.value)}`}
+                label={(entry: any) => `${String(entry.name)}: ${numberFormatter.format(Number(entry.value) || 0)}`}
               >
                 {data.map((_, i) => (
                   <Cell key={i} fill={COLORS[i % COLORS.length]} />
@@ -249,7 +249,7 @@ function KpiCards({ filters, timeDimensions }: DashboardComponentProps) {
             <h3 className="text-md font-medium text-muted-foreground">Faturamento no Período</h3>
           </div>
           <p className="text-4xl font-bold">
-            {isLoading ? <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" /> : (data ? currencyFormatter.format(data['sales.invoicing']) : 'N/A')}
+            {isLoading ? <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" /> : (data ? currencyFormatter.format(Number(data['sales.invoicing']) || 0) : 'N/A')}
           </p>
         </div>
         
@@ -261,7 +261,7 @@ function KpiCards({ filters, timeDimensions }: DashboardComponentProps) {
             <h3 className="text-md font-medium text-muted-foreground">Ticket Médio no Período</h3>
           </div>
           <p className="text-4xl font-bold">
-            {isLoading ? <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" /> : (data ? currencyFormatter.format(data['sales.avg_ticket']) : 'N/A')}
+            {isLoading ? <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" /> : (data ? currencyFormatter.format(Number(data['sales.avg_ticket']) || 0) : 'N/A')}
           </p>
         </div>
       </CardContent>
@@ -300,7 +300,7 @@ function TopProducts({ filters, timeDimensions }: DashboardComponentProps) {
               {products.map((row, index) => (
                 <TableRow key={index}>
                   <TableCell className="font-medium">{String(row['products.name'])}</TableCell>
-                  <TableCell>{numberFormatter.format(row['sales.count'])}</TableCell>
+                  <TableCell>{numberFormatter.format(Number(row['sales.count']) || 0)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -342,7 +342,7 @@ function TopStores({ filters, timeDimensions }: DashboardComponentProps) {
               {stores.map((row, index) => (
                 <TableRow key={index}>
                   <TableCell className="font-medium">{String(row['stores.name'])}</TableCell>
-                  <TableCell>{numberFormatter.format(row['sales.count'])}</TableCell>
+                  <TableCell>{numberFormatter.format(Number(row['sales.count']) || 0)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
