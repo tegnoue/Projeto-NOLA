@@ -107,11 +107,6 @@ cube(`sales`, {
       type: `string`
     },
     
-    total_discount: {
-      sql: `total_discount`,
-      type: `string`
-    },
-    
     total_increase: {
       sql: `total_increase`,
       type: `string`
