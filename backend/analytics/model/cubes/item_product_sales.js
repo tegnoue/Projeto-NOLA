@@ -41,6 +41,21 @@ cube(`item_product_sales`, {
       sql: `item_id`,
       type: `number`
     },
+    count_added: {
+  type: `count`,
+  title: "Itens Adicionados (Qtd)",
+  filters: [
+    { sql: `${option_groups}.name = 'Adicionais'` }
+  ]
+},
+
+    count_removed: {
+  type: `count`,
+  title: "Itens Removidos (Qtd)",
+  filters: [
+    { sql: `${option_groups}.name = 'Remover'` }
+  ]
+},
 
     observations: {
       sql: `observations`,
