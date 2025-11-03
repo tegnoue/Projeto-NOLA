@@ -8,8 +8,8 @@ interface FiltersContextType {
   setSelectedStore: (store: string | null) => void;
   dateRange: DateRange;
   setDateRange: (range: DateRange) => void;
-  selectedCity: string | null; // <-- ADICIONE ESTA LINHA
-  setSelectedCity: (city: string | null) => void; // <-- ADICIONE ESTA LINHA
+  selectedCity: string | null; 
+  setSelectedCity: (city: string | null) => void; 
 }
 
 const FiltersContext = createContext<FiltersContextType | undefined>(undefined);
@@ -20,13 +20,13 @@ export function FiltersProvider({ children }: { children: ReactNode }) {
     '2025-01-01', 
     '2025-12-31'
   ]);
-  const [selectedCity, setSelectedCity] = useState<string | null>(null); // <-- ADICIONE ESTA LINHA
+  const [selectedCity, setSelectedCity] = useState<string | null>(null); 
 
   return (
     <FiltersContext.Provider value={{ 
       selectedStore, setSelectedStore, 
       dateRange, setDateRange,
-      selectedCity, setSelectedCity // <-- ADICIONE ESTA LINHA
+      selectedCity, setSelectedCity
     }}>
       {children}
     </FiltersContext.Provider>
