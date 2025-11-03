@@ -1,20 +1,25 @@
-### Backlog do Produto
+### Backlog do Produto (Atualizado)
 
-| Épico | ID | História de Usuário / Tarefa Técnica | Dor(es) Relacionada(s) | Critérios de Aceitação | Prioridade |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| Fundação Técnica | T01 | [Técnico] Configurar ambiente (PostgreSQL + Gerador de Dados) | Todas | • `docker compose up` funciona.<br>• Banco populado com +500k vendas. | P0 |
-| Fundação Técnica | T02 | [Técnico] Configurar Camada Analítica (ex: Cube.js) e Frontend (Next.js) | D09 (Performance) | • Camada analítica conectada ao PostgreSQL.<br>• Frontend conectado à API analítica.<br>• Decisão arquitetural documentada. | P0 |
-| Dashboard (MVP) | US01 | Como Maria, eu quero ver os KPIs principais (Faturamento, Vendas, Ticket Médio). | D07, D08 | • Métricas corretas.<br>• Carregamento em \< 500ms.<br>• UX intuitiva e Mobile-friendly. | P0 |
-| Dashboard (MVP) | US02 | Como Maria, eu quero um seletor de período de datas global. | D07, D08, D09 | • Filtro de data atualiza todos os gráficos.<br>• Carregamento em \< 500ms. | P0 |
-| Dashboard (MVP) | US03 | Como Maria, eu quero ver um ranking de "Top 10 Produtos Mais Vendidos". | D08 (Crit. Sucesso \#2) | • Ranking correto.<br>• Carregamento em \< 500ms.<br>• Mobile-friendly. | P0 |
-| Dashboard (MVP) | US04 | Como Maria, eu quero um filtro de Lojas global. | D09 (Crit. Sucesso \#3), D02 | • Permite comparar lojas.<br>• Todos os gráficos são atualizados.<br>• Carregamento em \< 500ms. | P0 |
-| Exploração Flexível | US05 | Como Maria, eu quero poder exportar meu dashboard ou um gráfico (ex: PDF/CSV), para que eu possa apresentar os dados ao meu sócio. | "Critério de Sucesso \#4" | • A exportação deve refletir os filtros atuais.<br>• Deve ser uma ação intuitiva (ex: um botão "Exportar"). | P1 |
-| Exploração Flexível | US06 | Como Maria, eu quero poder ver vendas por Dia da Semana e Hora do Dia. | D01, D04 | • Permite responder "quinta à noite".<br>• Acessibilidade básica. | P1 |
-| Exploração Flexível | US07 | Como Maria, eu quero visualizar métricas operacionais, principalmente relacionadas a entregas. | D04 | • Usa os campos `production_seconds` e `delivery_seconds`. | P1 |
-| Exploração Flexível | US08 | Como Maria, eu quero poder criar minha própria análise (salvar gráfico). | D06, D07 | • Resolve o desafio central de "explorar dados livremente". | P1 |
-| Análises Avançadas | US09 | Como Maria, eu quero ver um ranking de itens/complementos. | D10 (Implícita) | • Usa a tabela `item_product_sales`. | P2 |
-| Análises Avançadas | US10 | Como Maria, eu quero ver um relatório de Taxa de Cancelamento e motivos. | Dores Implícitas (Checklist) | • Usa o `sale_status_desc = 'CANCELLED'`. | P2 |
-| Análises Avançadas | US11 | Como Maria, eu quero um relatório simples de clientes. | D05 | • Filtra clientes por recência e frequência de compra. | P2 |
-| Análises Avançadas | US12 | Como Maria, eu quero que o sistema detecte e destaque anomalias (picos/quedas) no faturamento. | D12 (Implícita), "Insights/IA" | • Deve identificar a "Semana problemática" e o "Dia promocional". | P2 |
-| Qualidade Técnica | T03 | [Técnico] Implementar testes automatizados para as métricas de negócio. | "Code quality: testes" | • "Pontos Extras: Testes automatizados".<br>• Código testável (SOLID, DRY). | P2 |
-| Qualidade Técnica | T04 | [Técnico] Fazer o deploy funcional em cloud (ex: Vercel, Railway). | "Entrega" | • "Não obrigatório, mas valorizado." | P2 |
+| Épico | ID | História de Usuário / Tarefa Técnica | Critérios de Aceitação | Prioridade |
+| :--- | :--- | :--- | :--- | :--- |
+| Dashboard (MVP) | US01 | Como Maria, eu quero ver os KPIs principais (Faturamento, Vendas, Ticket Médio). | • Métricas corretas (`invoicing`, `avg_ticket`).<br>• Design implementado com `<Card>` do Shadcn/UI.<br>• Formatação de moeda (ex: R$) aplicada. | P0 |
+| Dashboard (MVP) | US02 | Como Maria, eu quero um seletor de período de datas global. | • Filtro de data implementado com presets ("Diário", "Semanal", "Mensal") e personalizado.<br>• Implementado como um filtro local em cada página. | P0 |
+| Dashboard (MVP) | US03 | Como Maria, eu quero ver um ranking de "Top 10 Produtos Mais Vendidos". | • Ranking implementado na `Home`.<br>• Usa `<Table>` do Shadcn/UI.<br>• Lógica de `JOIN` (`sales` -\> `product_sales` -\> `products`) a funcionar. | P0 |
+| Dashboard (MVP) | US04 | Como Maria, eu quero um filtro de Lojas global. | • Filtro de Loja e Cidade implementado.<br>• Botão "Limpar" funcional.<br>• Implementado como um filtro local em cada página. | P0 |
+| Exploração Flexível | US05 | Como Maria, eu quero poder exportar meu dashboard ou um gráfico (ex: PDF/CSV). | • (Implementação pendente) | P2 |
+| Exploração Flexível | US06 | Como Maria, eu quero poder ver vendas por Dia da Semana e Hora do Dia. | • Dimensões `hourOfDay` e `dayOfWeek` criadas no Cube.js.<br>• Gráficos `<BarChart>` (recharts) implementados na `Home` e `/operacional`. | P1 |
+| Exploração Flexível | US07 | Como Maria, eu quero uma **tela dedicada** (`/operacional`) para métricas de entrega. | • Página `app/operacional/page.tsx` criada e funcional.<br>• KPIs de Preparo e Entrega implementados.<br>• Ranking de Piores Bairros e Gráficos de Tempo (com granularidade) implementados. | P1 |
+| Exploração Flexível | US08 | Como Maria, eu quero poder **criar minha própria análise** (Tela `/explorar`). | • Página `app/explorar/page.tsx` criada e funcional.<br>• Seletores (hardcoded) de Métrica e Dimensão a funcionar.<br>• Gráfico de barras dinâmico implementado. | P1 |
+| Análises Avançadas | US09 | Como Maria, eu quero ver um ranking de itens/complementos. | • `JOIN` complexo (`sales` -\> ... -\> `items`) implementado.<br>• Métricas (`revenue`, `times_added`) criadas.<br>• Ranking "Top 10 Itens" implementado na `Home`. | P1 |
+| Análises Avançadas | US10 | Como Maria, eu quero um relatório de Taxa de Cancelamento e motivos. | • Métricas `cancellation_rate` e `count_cancelled` criadas.<br>• Gráfico "Taxa de Cancelamento por Canal" implementado na `/operacional`.<br>• (Motivos não existem nos dados). | P1 |
+| Análises Avançadas | US11 | Como Maria, eu quero uma **tela dedicada** (`/clientes`) com um relatório de RFM. | • Página `app/clientes/page.tsx` criada e funcional.<br>• Métricas de RFM (`frequency`, `days_since_last_purchase`, `ltv`) implementadas.<br>• KPIs "Novos vs. Recorrentes" e Gráfico de "Faixa Etária" implementados. | P1 |
+| Análises Avançadas | US12 | Como Maria, eu quero um gráfico de **anomalias** (Picos e Quedas). | • Gráfico `<LineChart>` (Faturamento por Dia) implementado na `Home`, que permite a identificação visual de anomalias. | P1 |
+| Análises Avançadas | US13 | Como Maria, eu quero uma **tela dedicada** (`/lojas`) para comparar lojas. | • Página `app/lojas/page.tsx` criada e funcional.<br>• Gráfico "Próprias vs. Franqueadas" implementado.<br>• Lógica de "Top 5"s (Faturamento, Cancelamento, Crescimento) implementada.<br>• Lógica de "Ampliar" (link para `/lojas/tabela-completa`) implementada.<br>• Tabela completa com ordenação implementada. | P1 |
+| Análises Avançadas | US14 | Como Maria, eu quero uma **tela dedicada** (`/produtos`). | • Página criada na `Sidebar`.<br>• (Implementação pendente) | P2 |
+| Qualidade Técnica | T01 | [Técnico] Configurar ambiente (PostgreSQL + Gerador de Dados) | • `docker compose up` funciona.<br>• Banco populado com +500k vendas. | P0 |
+| Qualidade Técnica | T02 | [Técnico] Configurar Camada Analítica (Cube.js) e Frontend (Next.js) | • Camada analítica conectada ao PostgreSQL.<br>• Frontend conectado à API (Vertical Slice).<br>• Decisão arquitetural documentada. | P0 |
+| Qualidade Técnica | T03 | [Técnico] Implementar testes automatizados para as métricas. | • (Implementação pendente) | P2 |
+| Qualidade Técnica | T04 | [Técnico] Fazer o deploy funcional em cloud (ex: Vercel, Railway). | • (Implementação pendente) | P2 |
+| Qualidade Técnica | T05 | [Técnico] Implementar **Pré-Agregações** no Cube.js para otimizar a performance. | • Bloco `preAggregations` criado no `sales.js`.<br>• Performance melhorada de +2s para \< 500ms. | P0 |
+| UI/UX (Polimento) | T06 | [Técnico] Refatorar todas as telas para usar **Shadcn/UI** e **Tailwind**. | • `npm install shadcn-ui` executado.<br>• Componentes (`<Card>`, `<Table>`, `<Select>`, etc.) implementados em todas as telas. | P1 |
+| UI/UX (Polimento) | T07 | [Técnico] Criar **Navegação Global** (Sidebar) e unificar os filtros. | • `Sidebar` criada.<br>• `GlobalFilters` e `FiltersProvider` (Context) criados e implementados no `layout.tsx`.<br>• Páginas filhas (Home, etc.) limpas e a usar o contexto global. | P1 |
