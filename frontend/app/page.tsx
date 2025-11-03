@@ -2,14 +2,15 @@
     
 import cubeApi from '../lib/cube'; 
 import { CubeProvider, useCubeQuery } from '@cubejs-client/react';
-import React, { useState, useMemo } from 'react'; 
+import React, { useState } from 'react'; // Removido useEffect
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  LineChart, Line, PieChart, Pie, Cell, Legend, CartesianAxis
+  // BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  LineChart, Line, PieChart, Pie, Cell, Legend, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer
 } from 'recharts';
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -31,9 +32,13 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+// Importando ícones para os KPIs e estados de carregamento
+import { Loader2, AlertTriangle, DollarSign, ShoppingBag } from 'lucide-react';
 
 type DateRange = [string, string];
 type DateFilterPreset = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
+// --- Funções Helper (sem alteração na lógica) ---
 
 function getDateRangeFromPreset(preset: DateFilterPreset): [string, string] {
   const end = new Date();
@@ -55,6 +60,50 @@ function getDateRangeFromPreset(preset: DateFilterPreset): [string, string] {
   ];
 }
 
+function normalizeCubeRawData(raw: any[] = []) {
+  return raw
+    .map((item: any) => {
+      const name = item['channels.name'] || item['Channels.name'] || item['Channels Name'] || item['channels_name'];
+      const rawValue = item['sales.count'] || item['Sales.count'] || item['Sales Count'] || item['sales_count'];
+      const value = typeof rawValue === 'string' ? Number(rawValue.replace(/\D/g, '')) : Number(rawValue);
+      return { name, value: Number.isFinite(value) ? value : 0 };
+    })
+    .filter(d => d.name) 
+    .map(d => ({ ...d, value: d.value || 0 }));
+}
+
+// --- Hook de Mock Removido ---
+
+
+// --- Componentes de UI Reutilizáveis ---
+
+/**
+ * Componente para exibir um estado de carregamento padronizado.
+ */
+function LoadingComponent({ message = "A carregar..." }: { message?: string }) {
+  return (
+    <div className="flex items-center justify-center h-full min-h-[200px] text-muted-foreground">
+      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+      <span>{message}</span>
+    </div>
+  );
+}
+
+/**
+ * Componente para exibir um estado de erro padronizado.
+ */
+function ErrorComponent({ componentName, error }: { componentName: string, error: Error }) {
+  return (
+    <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-destructive-foreground bg-destructive/80 p-4 rounded-lg">
+      <AlertTriangle className="mb-2 h-6 w-6" />
+      <span className="font-bold">Erro em {componentName}</span>
+      <span className="text-sm text-center">{error.toString()}</span>
+    </div>
+  );
+}
+
+
+// --- Componentes do Dashboard (Estilizados) ---
 
 interface DashboardComponentProps {
   filters: any;
@@ -62,6 +111,7 @@ interface DashboardComponentProps {
 }
 
 function SalesLineChart({ filters, timeDimensions }: DashboardComponentProps) {
+  // Alterado de volta para useCubeQuery
   const { resultSet, isLoading, error } = useCubeQuery({
     measures: ['sales.count'],
     timeDimensions: [
@@ -76,53 +126,77 @@ function SalesLineChart({ filters, timeDimensions }: DashboardComponentProps) {
     }
   });
 
-  if (error) return <div>Erro (SalesLineChart): {error.toString()}</div>;
-  if (isLoading) return <div className="p-4 h-80">A carregar gráfico de linha...</div>;
-  
+  if (error) return <Card><CardContent className="p-0"><ErrorComponent componentName="SalesLineChart" error={error} /></CardContent></Card>;
+
   const data = resultSet?.rawData() || [];
+
+  // --- FUNÇÃO DE FORMATAR A DATA ADICIONADA AQUI ---
+  const formatDateTick = (dateString: string) => {
+    if (typeof dateString !== 'string') return dateString;
+
+    try {
+      // O dado vem como 'YYYY-MM-DD'
+      const parts = dateString.split('-');
+      if (parts.length === 3) {
+        const [year, month, day] = parts;
+        
+        // Retorna 'DD-MM-YYYY'
+        return `${day}-${month}-${year}`;
+        
+        // Para 'MM-YYYY', descomente a linha abaixo:
+        // return `${month}-${year}`;
+      }
+      return dateString; // Retorna o original se não for 'YYYY-MM-DD'
+    } catch (e) {
+      console.error("Erro ao formatar data do tick:", e);
+      return dateString; // Fallback
+    }
+  };
+  // --- FIM DA FUNÇÃO ---
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Vendas por Dia (Quantidade)</CardTitle>
+        <CardDescription>Evolução da contagem de vendas no período selecionado.</CardDescription>
       </CardHeader>
-      <CardContent className="h-80">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="sales.created_at.day" />
-            <YAxis />
-            <Tooltip />
-            <Line 
-              type="monotone" 
-              dataKey="sales.count" 
-              stroke="#8884d8" 
-              strokeWidth={2} 
-              dot={false}
-            />
-          </LineChart>
-        </ResponsiveContainer>
+      <CardContent className="h-96">
+        {isLoading ? (
+          <LoadingComponent message="A carregar gráfico de linha..." />
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" />
+              {/* --- EIXO X ATUALIZADO --- */}
+              {/* Adicionada a propriedade tickFormatter */}
+              <XAxis 
+                dataKey="sales.created_at.day" 
+                tickFormatter={formatDateTick} 
+                // Opcional: diminui a fonte se as datas ficarem muito juntas
+                // tick={{ fontSize: 12 }} 
+              />
+              {/* --- FIM DA ALTERAÇÃO --- */}
+              <YAxis />
+              <Tooltip />
+              <Line 
+                type="monotone" 
+                dataKey="sales.count" 
+                stroke="#8884d8" 
+                strokeWidth={2} 
+                dot={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
       </CardContent>
     </Card>
   );
 }
 
-function normalizeCubeRawData(raw: any[] = []) {
-  return raw
-    .map((item: any) => {
-      const name = item['channels.name'] || item['Channels.name'] || item['Channels Name'] || item['channels_name'];
-      const rawValue = item['sales.count'] || item['Sales.count'] || item['Sales Count'] || item['sales_count'];
-      const value = typeof rawValue === 'string' ? Number(rawValue.replace(/\D/g, '')) : Number(rawValue);
-      return { name, value: Number.isFinite(value) ? value : 0 };
-    })
-    .filter(d => d.name) 
-    .map(d => ({ ...d, value: d.value || 0 }));
-}
-
-
 const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff7300", "#0088FE", "#00C49F"];
 
 function ChannelDonutChart({ filters, timeDimensions }: DashboardComponentProps) {
+  // Alterado de volta para useCubeQuery
   const { resultSet, isLoading, error } = useCubeQuery({
     measures: ['sales.count'],
     dimensions: ['channels.name'],
@@ -130,51 +204,47 @@ function ChannelDonutChart({ filters, timeDimensions }: DashboardComponentProps)
     timeDimensions,
   });
 
-  if (error) return <div>Erro (ChannelDonutChart): {error.toString()}</div>;
-  if (isLoading) return <div className="p-4 h-80">A carregar gráfico de canais...</div>;
+  if (error) return <Card><CardContent className="p-0"><ErrorComponent componentName="ChannelDonutChart" error={error} /></CardContent></Card>;
 
   const raw = resultSet?.rawData() || [];
-  console.log('ChannelDonutChart raw:', raw);
-
-  const data = normalizeCubeRawData(raw)
-    .filter(d => d.value > 0); // opcional: remove zeros, evita fatias invisíveis
-
-  if (data.length === 0) {
-    return (
-      <Card>
-        <CardHeader><CardTitle>Vendas por Canal</CardTitle></CardHeader>
-        <CardContent className="h-80 flex items-center justify-center">
-          <div>Nenhum dado disponível para o período selecionado.</div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const data = normalizeCubeRawData(raw).filter(d => d.value > 0);
 
   return (
-    <Card>
-      <CardHeader><CardTitle>Vendas por Canal</CardTitle></CardHeader>
-      <CardContent className="h-80">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={data}
-              dataKey="value"
-              nameKey="name"
-              cx="50%"
-              cy="50%"
-              innerRadius={60}
-              outerRadius={100}
-              paddingAngle={4}
-              label={(entry) => `${entry.name}: ${entry.value}`}
-            >
-              {data.map((_, i) => (
-                <Cell key={i} fill={COLORS[i % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip formatter={(val: any) => Number(val).toLocaleString()} />
-            <Legend />
-          </PieChart>
-        </ResponsiveContainer>
+    <Card className="h-full">
+      <CardHeader>
+        <CardTitle>Vendas por Canal</CardTitle>
+        <CardDescription>Distribuição da quantidade de vendas por canal.</CardDescription>
+      </CardHeader>
+      <CardContent className="h-96">
+        {isLoading ? (
+          <LoadingComponent message="A carregar gráfico de canais..." />
+        ) : data.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            Nenhum dado disponível para o período.
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={data}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                innerRadius={70}
+                outerRadius={110}
+                paddingAngle={4}
+                label={(entry) => `${entry.name}: ${entry.value}`}
+              >
+                {data.map((_, i) => (
+                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip formatter={(val: any) => Number(val).toLocaleString()} />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        )}
       </CardContent>
     </Card>
   );
@@ -183,6 +253,7 @@ function ChannelDonutChart({ filters, timeDimensions }: DashboardComponentProps)
 
 
 function KpiCards({ filters, timeDimensions }: DashboardComponentProps) {
+  // Alterado de volta para useCubeQuery
   const { resultSet, isLoading, error } = useCubeQuery({
     measures: [
       'sales.invoicing',
@@ -192,26 +263,36 @@ function KpiCards({ filters, timeDimensions }: DashboardComponentProps) {
     timeDimensions: timeDimensions,
   });
 
-  if (error) return <div>Erro (KpiCards): {error.toString()}</div>;
+  if (error) return <Card className="h-full"><CardContent className="p-0"><ErrorComponent componentName="KpiCards" error={error} /></CardContent></Card>;
+  
   const data = resultSet?.tablePivot()[0];
 
   return (
     <Card className="h-full">
       <CardHeader>
         <CardTitle>Resultados do Período</CardTitle>
+        <CardDescription>Principais métricas financeiras.</CardDescription>
       </CardHeader>
-      <CardContent className="h-80 flex flex-col justify-center items-center">
+      <CardContent className="h-full flex flex-col justify-around">
         <div className="text-center">
-          <h3 className="text-sm font-medium text-gray-500">Faturamento no Período</h3>
+          <div className="flex items-center justify-center mb-2">
+            <DollarSign className="h-6 w-6 text-green-500 mr-2" />
+            <h3 className="text-md font-medium text-muted-foreground">Faturamento no Período</h3>
+          </div>
           <p className="text-4xl font-bold">
-            {isLoading ? '...' : (data ? data['sales.invoicing'] : 'N/A')}
+            {isLoading ? <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" /> : (data ? data['sales.invoicing'] : 'N/A')}
           </p>
         </div>
-        <hr className="my-8 w-3/4" />
+        
+        <div className="border-t my-4"></div> 
+
         <div className="text-center">
-          <h3 className="text-sm font-medium text-gray-500">Ticket Médio no Período</h3>
+          <div className="flex items-center justify-center mb-2">
+            <ShoppingBag className="h-6 w-6 text-blue-500 mr-2" />
+            <h3 className="text-md font-medium text-muted-foreground">Ticket Médio no Período</h3>
+          </div>
           <p className="text-4xl font-bold">
-            {isLoading ? '...' : (data ? data['sales.avg_ticket'] : 'N/A')}
+            {isLoading ? <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" /> : (data ? data['sales.avg_ticket'] : 'N/A')}
           </p>
         </div>
       </CardContent>
@@ -220,6 +301,7 @@ function KpiCards({ filters, timeDimensions }: DashboardComponentProps) {
 }
 
 function TopProducts({ filters, timeDimensions }: DashboardComponentProps) {
+  // Alterado de volta para useCubeQuery
   const { resultSet, isLoading, error } = useCubeQuery({
     measures: ['sales.count'],
     dimensions: ['products.name'],
@@ -229,35 +311,40 @@ function TopProducts({ filters, timeDimensions }: DashboardComponentProps) {
     timeDimensions: timeDimensions,
   });
 
-  if (error) return <div>Erro (TopProducts): {error.toString()}</div>;
-  if (isLoading) return <div>A carregar Top Produtos...</div>;
+  if (error) return <Card><CardContent className="p-0"><ErrorComponent componentName="TopProducts" error={error} /></CardContent></Card>;
+
   const products = resultSet?.tablePivot() || [];
 
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader>
         <CardTitle>Top 5 Produtos (por Quantidade)</CardTitle>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow><TableHead>Produto</TableHead><TableHead>Quantidade</TableHead></TableRow>
-          </TableHeader>
-          <TableBody>
-            {products.map((row, index) => (
-              <TableRow key={index}>
-                <TableCell className="font-medium">{String(row['products.name'])}</TableCell>
-                <TableCell>{String(row['sales.count'])}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        {isLoading ? (
+          <LoadingComponent message="A carregar Top Produtos..." />
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow><TableHead>Produto</TableHead><TableHead>Quantidade</TableHead></TableRow>
+            </TableHeader>
+            <TableBody>
+              {products.map((row, index) => (
+                <TableRow key={index}>
+                  <TableCell className="font-medium">{String(row['products.name'])}</TableCell>
+                  <TableCell>{String(row['sales.count'])}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </CardContent>
     </Card>
   );
 }
 
 function TopStores({ filters, timeDimensions }: DashboardComponentProps) {
+  // Alterado de volta para useCubeQuery
   const { resultSet, isLoading, error } = useCubeQuery({
     measures: ['sales.count'],
     dimensions: ['stores.name'],
@@ -267,83 +354,99 @@ function TopStores({ filters, timeDimensions }: DashboardComponentProps) {
     timeDimensions: timeDimensions,
   });
 
-  if (error) return <div>Erro (TopStores): {error.toString()}</div>;
-  if (isLoading) return <div>A carregar Top Lojas...</div>;
+  if (error) return <Card><CardContent className="p-0"><ErrorComponent componentName="TopStores" error={error} /></CardContent></Card>;
+
   const stores = resultSet?.tablePivot() || [];
 
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader>
         <CardTitle>Top 5 Lojas (por Quantidade)</CardTitle>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow><TableHead>Loja</TableHead><TableHead>Quantidade</TableHead></TableRow>
-          </TableHeader>
-          <TableBody>
-            {stores.map((row, index) => (
-              <TableRow key={index}>
-                <TableCell className="font-medium">{String(row['stores.name'])}</TableCell>
-                <TableCell>{String(row['sales.count'])}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        {isLoading ? (
+          <LoadingComponent message="A carregar Top Lojas..." />
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow><TableHead>Loja</TableHead><TableHead>Quantidade</TableHead></TableRow>
+            </TableHeader>
+            <TableBody>
+              {stores.map((row, index) => (
+                <TableRow key={index}>
+                  <TableCell className="font-medium">{String(row['stores.name'])}</TableCell>
+                  <TableCell>{String(row['sales.count'])}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </CardContent>
     </Card>
   );
 }
 
+// --- Componentes de Filtro (sem alteração na lógica) ---
+
 function StoreFilter({ onStoreChange }: { onStoreChange: (store: string | null) => void }) {
+  // Alterado de volta para useCubeQuery
   const { resultSet, isLoading, error } = useCubeQuery({ dimensions: ['stores.name'] });
-  if (isLoading) return <div>A carregar lojas...</div>;
   if (error) return <div>Erro (StoreFilter): {error.toString()}</div>;
+
   const stores = resultSet?.tablePivot() || [];
 
   return (
-    <div className="mr-4">
+    <div className="flex-1 min-w-[200px]">
       <Label className="font-medium text-sm">Loja (US04):</Label>
-      <Select onValueChange={(value) => onStoreChange(value === 'all' ? null : value)}>
-        <SelectTrigger className="w-[240px]">
-          <SelectValue placeholder="-- Todas as Lojas --" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">-- Todas as Lojas --</SelectItem>
-          {stores.map((store, index) => (
-            <SelectItem key={index} value={String(store['stores.name'])}>
-              {String(store['stores.name'])}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      {isLoading ? (
+        <LoadingComponent message="Lojas..." />
+      ) : (
+        <Select onValueChange={(value) => onStoreChange(value === 'all' ? null : value)}>
+          <SelectTrigger>
+            <SelectValue placeholder="-- Todas as Lojas --" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">-- Todas as Lojas --</SelectItem>
+            {stores.map((store, index) => (
+              <SelectItem key={index} value={String(store['stores.name'])}>
+                {String(store['stores.name'])}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
     </div>
   );
 }
 
 function CityFilter({ onCityChange }: { onCityChange: (city: string | null) => void }) {
+  // Alterado de volta para useCubeQuery
   const { resultSet, isLoading, error } = useCubeQuery({ dimensions: ['stores.city'] });
-  if (isLoading) return <div>A carregar cidades...</div>;
   if (error) return <div>Erro (CityFilter): {error.toString()}</div>;
+
   const cities = (resultSet?.tablePivot() || []).map(row => row['stores.city']).filter(city => city).sort();
   const uniqueCities = [...new Set(cities)];
 
   return (
-    <div className="mr-4">
+    <div className="flex-1 min-w-[180px]">
       <Label className="font-medium text-sm">Cidade:</Label>
-      <Select onValueChange={(value) => onCityChange(value === 'all' ? null : value)}>
-        <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="-- Todas as Cidades --" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">-- Todas as Cidades --</SelectItem>
-          {uniqueCities.map((city, index) => (
-            <SelectItem key={index} value={String(city)}>
-              {String(city)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      {isLoading ? (
+        <LoadingComponent message="Cidades..." />
+      ) : (
+        <Select onValueChange={(value) => onCityChange(value === 'all' ? null : value)}>
+          <SelectTrigger>
+            <SelectValue placeholder="-- Todas as Cidades --" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">-- Todas as Cidades --</SelectItem>
+            {uniqueCities.map((city, index) => (
+              <SelectItem key={index} value={String(city)}>
+                {String(city)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
     </div>
   );
 }
@@ -356,21 +459,23 @@ function DateFilter({ dateRange, onDateChange }: { dateRange: DateRange, onDateC
   return (
     <div className="flex flex-wrap items-center gap-4">
       <div className="flex items-center space-x-2">
-        <Label className="font-medium text-sm">Período Rápido:</Label>
+        <Label className="font-medium text-sm shrink-0">Período Rápido:</Label>
         <Button variant="outline" size="sm" onClick={() => setPreset('daily')}>Diário</Button>
         <Button variant="outline" size="sm" onClick={() => setPreset('weekly')}>Semanal</Button>
         <Button variant="outline" size="sm" onClick={() => setPreset('monthly')}>Mensal</Button>
         <Button variant="outline" size="sm" onClick={() => setPreset('yearly')}>Anual</Button>
       </div>
-      <div className="flex items-center space-x-2">
-        <Label className="font-medium text-sm">Período Personalizado:</Label>
+      <div className="flex flex-wrap items-center space-x-2">
+        <Label className="font-medium text-sm shrink-0">Período Personalizado:</Label>
         <Input type="date" value={dateRange[0]} onChange={(e) => onDateChange([e.target.value, dateRange[1]])} className="w-auto" />
-        <span className="mx-2">Até:</span>
+        <span className="mx-2 text-muted-foreground">Até:</span>
         <Input type="date" value={dateRange[1]} onChange={(e) => onDateChange([dateRange[0], e.target.value])} className="w-auto" />
       </div>
     </div>
   );
 }
+
+// --- Componente Principal (Layout Atualizado) ---
 
 export default function Home() {
   
@@ -404,28 +509,50 @@ export default function Home() {
   ];
   
   return (
+    // Adicionado o <CubeProvider> de volta
     <CubeProvider cubeApi={cubeApi}>
-      <main className="font-sans p-4 space-y-4">
+      {/* Container principal com fundo e espaçamento */}
+      <main className="font-sans p-4 md:p-8 space-y-6 bg-gray-100 dark:bg-zinc-900 min-h-screen">
         
-        <div className="p-4 bg-gray-50 border-t border-b flex flex-wrap items-center gap-4">
-          <StoreFilter onStoreChange={setSelectedStore} />
-          <CityFilter onCityChange={setSelectedCity} />
-          <DateFilter dateRange={dateRange} onDateChange={setDateRange} />
-        </div>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Dashboard de Vendas</h1>
         
-        <SalesLineChart filters={completedFilters} timeDimensions={timeDimensions} />
+        {/* Barra de Filtros em um Card */}
+        <Card>
+          <CardContent className="p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <StoreFilter onStoreChange={setSelectedStore} />
+              <CityFilter onCityChange={setSelectedCity} />
+            </div>
+            <DateFilter dateRange={dateRange} onDateChange={setDateRange} />
+          </CardContent>
+        </Card>
+        
+        {/* Grid principal do Dashboard */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* Linha 1: Gráfico de Linha (2/3) e KPIs (1/3) */}
+          <div className="lg:col-span-2">
+            <SalesLineChart filters={completedFilters} timeDimensions={timeDimensions} />
+          </div>
+          
+          <div className="lg:col-span-1">
+            <KpiCards filters={completedFilters} timeDimensions={timeDimensions} />
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <ChannelDonutChart filters={completedFilters} timeDimensions={timeDimensions} />
-          <KpiCards filters={completedFilters} timeDimensions={timeDimensions} />
-        </div>
+          {/* Linha 2: Gráfico de Donut (1/3) e Tabelas (2/3) */}
+          <div className="lg:col-span-1">
+            <ChannelDonutChart filters={completedFilters} timeDimensions={timeDimensions} />
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <TopProducts filters={completedFilters} timeDimensions={timeDimensions} />
-          <TopStores filters={completedFilters} timeDimensions={timeDimensions} />
+          <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <TopProducts filters={completedFilters} timeDimensions={timeDimensions} />
+            <TopStores filters={completedFilters} timeDimensions={timeDimensions} />
+          </div>
+
         </div>
 
       </main>
-    </CubeProvider>
+    </CubeProvider> // Adicionado o </CubeProvider> de volta
   );
 }
+
