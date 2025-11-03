@@ -36,15 +36,22 @@ cube(`products`, {
       sql: `pos_uuid`,
       type: `string`
     },
-
-    category_name: {
-    sql: `${categories}.name`,
-    type: `string`
-  },
     
     deleted_at: {
       sql: `deleted_at`,
       type: `time`
+    },
+
+    grouped_name: {
+      type: `string`,
+      title: "Produto (Agrupado)",
+      sql: `
+        CASE 
+          WHEN POSITION(' #' IN ${CUBE}.name) > 0 
+          THEN SUBSTRING(${CUBE}.name FROM 1 FOR POSITION(' #' IN ${CUBE}.name) - 1)
+          ELSE ${CUBE}.name
+        END
+      `
     }
   },
   
