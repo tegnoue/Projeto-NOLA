@@ -153,6 +153,12 @@ cube(`sales`, {
       type: `count`
     },
 
+    total_clientes: {
+      type: `countDistinct`,
+      sql: `customer_id`,
+      title: "Clientes Únicos"
+    },
+
     avg_ticket: {
       type: `avg`,
       sql: `total_amount`,
