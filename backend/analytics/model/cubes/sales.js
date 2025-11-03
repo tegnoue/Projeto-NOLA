@@ -69,7 +69,7 @@ cube(`sales`, {
     
     delivery_fee: {
       sql: `delivery_fee`,
-      type: `string`
+      type: `number` // CORRIGIDO: de 'string' para 'number'
     },
     
     discount_reason: {
@@ -94,27 +94,27 @@ cube(`sales`, {
     
     service_tax_fee: {
       sql: `service_tax_fee`,
-      type: `string`
+      type: `number` // CORRIGIDO: de 'string' para 'number'
     },
     
     total_amount: {
       sql: `total_amount`,
-      type: `string`
+      type: `number` // CORRIGIDO: de 'string' para 'number'
     },
     
     total_amount_items: {
       sql: `total_amount_items`,
-      type: `string`
+      type: `number` // CORRIGIDO: de 'string' para 'number'
     },
     
     total_increase: {
       sql: `total_increase`,
-      type: `string`
+      type: `number` // CORRIGIDO: de 'string' para 'number'
     },
     
     value_paid: {
       sql: `value_paid`,
-      type: `string`
+      type: `number` // CORRIGIDO: de 'string' para 'number'
     },
     
     created_at: {
@@ -160,14 +160,14 @@ cube(`sales`, {
 
     avg_ticket: {
       type: `avg`,
-      sql: `total_amount`,
-      format: `currency`
+      sql: `total_amount`
+      // REMOVIDO: format: `currency`
     },
 
     invoicing: {
       type: `sum`,
-      sql: 'total_amount',
-      format: `currency`
+      sql: 'total_amount'
+      // REMOVIDO: format: `currency`
     },
     
     people_quantity: {
@@ -201,7 +201,7 @@ cube(`sales`, {
     cancellation_rate: {
       type: `number`,
       sql: `(${count_cancelled}::float / ${count}::float)`,
-      format: `percent`,
+      // REMOVIDO: format: `percent`,
       title: `Taxa de Cancelamento`
     },
 
@@ -214,7 +214,7 @@ cube(`sales`, {
     ltv: {
       type: `sum`,
       sql: `total_amount`,
-      format: `currency`,
+      // REMOVIDO: format: `currency`,
       title: "Gasto Total (LTV)"
     },
     
@@ -226,18 +226,18 @@ cube(`sales`, {
 
     total_discount: {
       type: `sum`,
-      sql: `total_discount`,
-      format: `currency`
+      sql: `total_discount`
+      // REMOVIDO: format: `currency`
     },
 
     discount_percentage:{
       type: `number`,
-      sql: `(${total_discount}::float / ${invoicing}::float + ${total_discount}::float)`,
-      format: `percent`
+      sql: `((${total_discount}::float / ${invoicing}::float + ${total_discount}::float))`
+      // REMOVIDO: format: `percent`
     }
   },
   
-preAggregations: {
+  preAggregations: {
     main: {
       type: `rollup`,
 
@@ -268,7 +268,7 @@ preAggregations: {
         stores.city,
         stores.sub_brand_id,
         products.name,
-                sales.month ,
+        sales.month ,
         items.name,
         delivery_addresses.neighborhood,
         customers.customer_name,
