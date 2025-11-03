@@ -36,6 +36,11 @@ cube(`products`, {
       sql: `pos_uuid`,
       type: `string`
     },
+
+    category_name: {
+    sql: `${categories}.name`,
+    type: `string`
+  },
     
     deleted_at: {
       sql: `deleted_at`,
