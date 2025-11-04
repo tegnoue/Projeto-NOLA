@@ -3,7 +3,8 @@
 
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
-import "./globals.css"; 
+// @ts-ignore: allow importing global CSS without type declarations
+import "./globals.css";
 import { Providers } from "./providers"; 
 import { Sidebar } from "@/components/sidebar";
 import { useState } from "react"; 
