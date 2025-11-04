@@ -32,6 +32,12 @@ cube(`sales`, {
     delivery_sales: {
       sql: `${CUBE}.id = ${delivery_sales}.sale_id`,
       relationship: `hasOne`
+    },
+    
+    // ADICIONADO: Join para o gráfico de pagamentos
+    payments: {
+      sql: `${CUBE}.id = ${payments.sale_id}`,
+      relationship: `hasMany`
     }
   },
 
@@ -67,11 +73,6 @@ cube(`sales`, {
       type: `string`
     },
     
-    delivery_fee: {
-      sql: `delivery_fee`,
-      type: `number` // CORRIGIDO: de 'string' para 'number'
-    },
-    
     discount_reason: {
       sql: `discount_reason`,
       type: `string`
@@ -90,31 +91,6 @@ cube(`sales`, {
     sale_status_desc: {
       sql: `sale_status_desc`,
       type: `string`
-    },
-    
-    service_tax_fee: {
-      sql: `service_tax_fee`,
-      type: `number` // CORRIGIDO: de 'string' para 'number'
-    },
-    
-    total_amount: {
-      sql: `total_amount`,
-      type: `number` // CORRIGIDO: de 'string' para 'number'
-    },
-    
-    total_amount_items: {
-      sql: `total_amount_items`,
-      type: `number` // CORRIGIDO: de 'string' para 'number'
-    },
-    
-    total_increase: {
-      sql: `total_increase`,
-      type: `number` // CORRIGIDO: de 'string' para 'number'
-    },
-    
-    value_paid: {
-      sql: `value_paid`,
-      type: `number` // CORRIGIDO: de 'string' para 'number'
     },
     
     created_at: {
@@ -136,7 +112,8 @@ cube(`sales`, {
       sql: `store_id`,
       type: `number`
     },
-        month: {
+        
+    month: {
       sql: `TO_CHAR(${CUBE}.created_at, 'YYYY-MM')`, // Formato '2025-09'
       type: `string`
     },
@@ -152,6 +129,36 @@ cube(`sales`, {
       type: `count`
     },
 
+    delivery_fee: {
+      sql: `delivery_fee`,
+      type: `sum`
+    },
+    service_tax_fee: {
+      sql: `service_tax_fee`,
+      type: `sum`
+    },
+    total_amount: {
+      sql: `total_amount`,
+      type: `sum`
+    },
+    total_amount_items: { 
+      sql: `total_amount_items`,
+      type: `sum`
+    },
+    total_increase: {
+      sql: `total_increase`,
+      type: `sum`
+    },
+    value_paid: {
+      sql: `value_paid`,
+      type: `sum`
+    },
+    total_discount: {
+      type: `sum`,
+      sql: `total_discount`
+    },
+    // --- FIM DAS MEDIDAS FINANCEIRAS ---
+
     total_clientes: {
       type: `countDistinct`,
       sql: `customer_id`,
@@ -160,14 +167,12 @@ cube(`sales`, {
 
     avg_ticket: {
       type: `avg`,
-      sql: `total_amount`
-      // REMOVIDO: format: `currency`
+      sql: `total_amount` // total_amount é o 'invoicing'
     },
 
-    invoicing: {
+    invoicing: { // MANTIDO: 'invoicing' como sinônimo de 'total_amount'
       type: `sum`,
       sql: 'total_amount'
-      // REMOVIDO: format: `currency`
     },
     
     people_quantity: {
@@ -201,7 +206,6 @@ cube(`sales`, {
     cancellation_rate: {
       type: `number`,
       sql: `(${count_cancelled}::float / ${count}::float)`,
-      // REMOVIDO: format: `percent`,
       title: `Taxa de Cancelamento`
     },
 
@@ -214,7 +218,6 @@ cube(`sales`, {
     ltv: {
       type: `sum`,
       sql: `total_amount`,
-      // REMOVIDO: format: `currency`,
       title: "Gasto Total (LTV)"
     },
     
@@ -223,61 +226,46 @@ cube(`sales`, {
       sql: `DATE_PART('day', NOW() - MAX(${CUBE}.created_at))`,
       title: "Dias desde a Última Compra"
     },
-
-    total_discount: {
-      type: `sum`,
-      sql: `total_discount`
-      // REMOVIDO: format: `currency`
-    },
-
     discount_percentage:{
       type: `number`,
-      sql: `((${total_discount}::float / ${invoicing}::float + ${total_discount}::float))`
-      // REMOVIDO: format: `percent`
+      sql: `CASE WHEN ${total_amount_items} = 0 THEN 0 ELSE ${total_discount}::float / ${total_amount_items}::float END`
     }
   },
   
+
   preAggregations: {
     main: {
       type: `rollup`,
-
       measures: [
         sales.count,
+        sales.total_clientes,
+        sales.avg_ticket,
         sales.invoicing,
+        sales.total_amount_items, // Adicionada
+        sales.people_quantity,
         sales.avg_prep_time,
         sales.avg_delivery_time,
         sales.count_cancelled,
         sales.cancellation_rate,
-        sales.total_discount,
-        sales.discount_percentage,
         sales.frequency,
         sales.ltv,
         sales.days_since_last_purchase,
-        item_product_sales.revenue,
-        item_product_sales.times_added,
+        sales.total_discount,
+        sales.discount_percentage
       ],
-
       dimensions: [
         sales.sale_status_desc,
-        sales.hourOfDay,
         sales.discount_reason,
-        customers.age_range, 
+        sales.hourOfDay,
         sales.dayOfWeek,
-        stores.name,
-        stores.is_own,
-        stores.city,
-        stores.sub_brand_id,
-        products.name,
-        sales.month ,
-        items.name,
-        delivery_addresses.neighborhood,
-        customers.customer_name,
-        channels.name
+        sales.month,
+        sales.store_id,
+        sales.customer_id,
+        sales.channel_id,
+        sales.sub_brand_id
       ],
-      
       timeDimension: sales.created_at,
       granularity: `day`
     }
   }
-  
 });
