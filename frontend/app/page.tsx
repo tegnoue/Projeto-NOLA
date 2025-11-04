@@ -198,22 +198,6 @@ function TopProducts({ filters, timeDimensions }: DashboardComponentProps) {
   const [isExporting, setIsExporting] = useState(false);
   const query: Query = { measures: ['sales.count'], dimensions: ['products.name'], order: { 'sales.count': 'desc' }, limit: 5, filters: filters, timeDimensions: timeDimensions };
   const { resultSet, isLoading, error } = useCubeQuery(query);
-  const handleExport = async (format: 'csv' | 'xlsx') => {
-    setIsExporting(true);
-    try {
-      const exportQuery = { ...query, limit: undefined }; 
-      const fileContent = await cubeApi.load(exportQuery, { queryFormat: format });
-      const blob = new Blob([fileContent], { type: format === 'xlsx' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `top_produtos.${format}`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    } catch (err) { console.error("Erro ao exportar:", err); } finally { setIsExporting(false); }
-  };
   if (error) return <Card><CardContent className="p-0"><ErrorComponent componentName="TopProducts" error={error} /></CardContent></Card>;
   const products = resultSet?.tablePivot() || [];
   return (
@@ -221,10 +205,6 @@ function TopProducts({ filters, timeDimensions }: DashboardComponentProps) {
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle>Top 5 Produtos (por Quantidade)</CardTitle>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => handleExport('csv')} disabled={isExporting || isLoading}><Download className="mr-1 h-3 w-3" /> {isExporting ? '...' : 'CSV'}</Button>
-            <Button variant="outline" size="sm" onClick={() => handleExport('xlsx')} disabled={isExporting || isLoading}><Download className="mr-1 h-3 w-3" /> {isExporting ? '...' : 'Excel'}</Button>
-          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -251,33 +231,12 @@ function TopStores({ filters, timeDimensions }: DashboardComponentProps) {
   const [isExporting, setIsExporting] = useState(false);
   const query: Query = { measures: ['sales.count'], dimensions: ['stores.name'], order: { 'sales.count': 'desc' }, limit: 5, filters: filters, timeDimensions: timeDimensions, };
   const { resultSet, isLoading, error } = useCubeQuery(query);
-  const handleExport = async (format: 'csv' | 'xlsx') => {
-    setIsExporting(true);
-    try {
-      const exportQuery = { ...query, limit: undefined }; 
-      const fileContent = await cubeApi.load(exportQuery, { queryFormat: format });
-      const blob = new Blob([fileContent], { type: format === 'xlsx' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `top_lojas.${format}`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    } catch (err) { console.error("Erro ao exportar:", err); } finally { setIsExporting(false); }
-  };
-  if (error) return <Card><CardContent className="p-0"><ErrorComponent componentName="TopStores" error={error} /></CardContent></Card>;
   const stores = resultSet?.tablePivot() || [];
   return (
     <Card className="h-full">
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle>Top 5 Lojas (por Quantidade)</CardTitle>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => handleExport('csv')} disabled={isExporting || isLoading}><Download className="mr-1 h-3 w-3" /> {isExporting ? '...' : 'CSV'}</Button>
-            <Button variant="outline" size="sm" onClick={() => handleExport('xlsx')} disabled={isExporting || isLoading}><Download className="mr-1 h-3 w-3" /> {isExporting ? '...' : 'Excel'}</Button>
-          </div>
         </div>
       </CardHeader>
       <CardContent>
